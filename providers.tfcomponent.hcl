@@ -24,6 +24,10 @@ required_providers {
       source = "hashicorp/random"
       version = "~> 3.6.0"
     }
+  http = {
+    source = "hashicorp/http"
+    version = "~> 3.5.0"
+  }
 }
 
 provider "vault" "this" {
@@ -83,4 +87,7 @@ provider "tls" "this" {
 }
 
 provider "random" "this" {
+}
+
+provider "http" "this" {
 }
