@@ -46,6 +46,10 @@ provider "aws" "this" {
   config {
   # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
   region = var.region
+  access_key = "REDACTED_ACCESS_KEY"
+  secret_key = "REDACTED_SECRET_KEY"
+  token = "REDACTED_SESSION_TOKEN"
+
   #   default_tags {
   #     tags = {
   #       Demo    = "vault-secrets-operator"
