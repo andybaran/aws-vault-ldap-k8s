@@ -1,7 +1,7 @@
 
 
 component "ldap" {
-    source = "/modules/AWS_DC"
+    source = "./modules/AWS_DC"
     inputs = {
         region = var.region
         prefix = var.customer_name
@@ -17,14 +17,14 @@ component "ldap" {
 
     output "public-dns-address" {
         description = "This is the public DNS address of our instance"
-        value = module.AWS-DC.public-dns-address
+        value = component.ldap.public-dns-address
         type = string
         ephemeral = false
         sensitive = false
     }
     output "password" {
         description = "This is the decrypted administrator password for the EC2 instance"
-        value = module.AWS-DC.password
+        value = component.ldap.password
         ephemeral = false
         sensitive = false
         type = string
