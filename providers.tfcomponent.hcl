@@ -1,0 +1,64 @@
+required_providers {
+  vault = {
+    source = "hashicorp/vault"
+    version = "5.6.0"
+  }
+  aws = {
+    source = "hashicorp/aws"
+    version = "6.27.0"
+  }
+  kubernetes = {
+    source = "hashicorp/kubernetes"
+    version = "3.0.1"
+  }
+  helm = {
+    source = "hashicorp/helm"
+    version = "3.1.1"
+
+}
+}
+
+provider "vault"{
+  # skip_child_token = true
+  # address          = var.tfc_vault_dynamic_credentials.default.address
+  namespace = "admin/${var.customer_name}"
+
+  # auth_login_token_file {
+  #   filename = var.tfc_vault_dynamic_credentials.default.token_filename
+  # }
+}
+
+provider "aws"{
+  # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
+  region = var.region
+  #   default_tags {
+  #     tags = {
+  #       Demo    = "vault-secrets-operator"
+  #       Company = local.customer_name
+  #       BU      = "DDR"
+  #       Env     = "dev"
+  #     }
+  #   }
+}
+
+provider "helm"{
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    exec = {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+      command     = "aws"
+    }
+  }
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    command     = "aws"
+  }
+}
