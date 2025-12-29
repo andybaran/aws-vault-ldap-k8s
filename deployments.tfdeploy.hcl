@@ -1,5 +1,5 @@
 store varset "aws_creds" {
-  name = "doormat"
+  id = "varset-krBqtR3QFDRjYjAr"
   category = "env"
 }
 
