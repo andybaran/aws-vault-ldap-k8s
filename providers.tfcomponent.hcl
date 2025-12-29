@@ -15,10 +15,18 @@ required_providers {
     source = "hashicorp/helm"
     version = "3.1.1"
 
-}
+  }
+    tls = {
+      source = "hashicorp/tls"
+      version = "~> 4.0.5"
+    }
+        random = {
+      source = "hashicorp/random"
+      version = "~> 3.6.0"
+    }
 }
 
-provider "vault"{
+provider "vault" "this" {
   # skip_child_token = true
   # address          = var.tfc_vault_dynamic_credentials.default.address
   namespace = "admin/${var.customer_name}"
@@ -28,7 +36,7 @@ provider "vault"{
   # }
 }
 
-provider "aws"{
+provider "aws" "this" {
   # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
   region = var.region
   #   default_tags {
@@ -41,7 +49,7 @@ provider "aws"{
   #   }
 }
 
-provider "helm"{
+provider "helm" "this" {
   kubernetes = {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
@@ -53,7 +61,7 @@ provider "helm"{
   }
 }
 
-provider "kubernetes" {
+provider "kubernetes" "this" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   exec {
@@ -61,4 +69,10 @@ provider "kubernetes" {
     args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
     command     = "aws"
   }
+}
+
+provider "tls" "this" {
+}
+
+provider "random" "this" {
 }
