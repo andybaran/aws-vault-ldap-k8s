@@ -5,7 +5,7 @@ component "ldap" {
     inputs = {
         region = var.region
         prefix = var.customer_name
-        allowlist_ip = "${component.public_ip.my_ip_addr}/32"
+        allowlist_ip = "66.190.197.168/32"
     }
     providers = {
         aws = provider.aws.this
