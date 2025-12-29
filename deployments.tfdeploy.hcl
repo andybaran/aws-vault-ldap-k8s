@@ -8,7 +8,7 @@ deployment "developmnent" {
   inputs = {
     region = "us-east-2"
     customer_name = "fidelity"
-    role_arn = "arn:aws:iam::851170382860:role/stacks"
-    identity_token = identity_token.aws.jwt
+    aws_role = "arn:aws:iam::851170382860:role/stacks"
+    aws_token = identity_token.aws.jwt
   }
 }

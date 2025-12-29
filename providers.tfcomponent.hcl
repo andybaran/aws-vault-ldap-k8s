@@ -46,6 +46,10 @@ provider "aws" "this" {
   config {
   # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
   region = var.region
+      assume_role_with_web_identity {
+      role_arn           = var.aws_role
+      web_identity_token = var.aws_token
+    }
 
   #   default_tags {
   #     tags = {
