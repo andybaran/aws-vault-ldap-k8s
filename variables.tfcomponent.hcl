@@ -8,15 +8,6 @@ variable "customer_name" {
   #}
 }
 
-variable "aws_role" {
-  type = string
-}
-
-variable "aws_token" {
-  type      = string
-  ephemeral = true
-}
-
 
 variable "region" {
   description = "The AWS region to use for this demo."
