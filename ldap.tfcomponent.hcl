@@ -1,13 +1,7 @@
-component "public_ip" {
-    source = "./modules/public_ip"
-    providers = {
-        tls = provider.tls.this
-        random = provider.random.this
-    }
-}
+
 
 component "ldap" {
-    source = "./modules/AWS_DC"
+    source = "/modules/AWS_DC"
     inputs = {
         region = var.region
         prefix = var.customer_name
@@ -18,6 +12,9 @@ component "ldap" {
         tls = provider.tls.this
         random = provider.random.this
     }
+
+}
+
     output "public-dns-address" {
         description = "This is the public DNS address of our instance"
         value = module.AWS-DC.public-dns-address
@@ -33,5 +30,3 @@ component "ldap" {
         type = string
 
     }
-}
-
