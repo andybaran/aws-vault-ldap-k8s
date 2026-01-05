@@ -7,7 +7,7 @@ resource "kubernetes_namespace_v1" "simple_app" {
 }
 
 resource "aws_eip" "nginx_ingress" {
-  #count =var.step_2 ? 3 : 0
+  count = 3
   depends_on = [
     kubernetes_namespace_v1.simple_app,
   ]
