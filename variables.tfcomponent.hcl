@@ -43,7 +43,7 @@ variable "ddr_vault_root_namespace" {
   default = ""
 }
 
-variable "ddr_user_email" {
+variable "user_email" {
   type    = string
   default = ""
 }
