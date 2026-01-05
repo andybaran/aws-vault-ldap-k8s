@@ -33,12 +33,12 @@ variable "instance_type" {
   default     = "t2.medium"
 }
 
-variable "ddr_vault_public_endpoint" {
+variable "vault_public_endpoint" {
   type    = string
   default = ""
 }
 
-variable "ddr_vault_root_namespace" {
+variable "vault_root_namespace" {
   type    = string
   default = ""
 }
@@ -46,9 +46,4 @@ variable "ddr_vault_root_namespace" {
 variable "user_email" {
   type    = string
   default = ""
-}
-
-variable "vault_public_endpoint" {
-  description = "The public endpoint URL for the Vault server."
-  type        = string
 }

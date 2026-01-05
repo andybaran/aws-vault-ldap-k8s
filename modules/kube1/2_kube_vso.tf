@@ -1,3 +1,5 @@
+data "external" "env" {}
+
 resource "helm_release" "vault_secrets_operator" {
   #count      = var.step_2 ? 1 : 0
   #depends_on = [time_sleep.step_2]
