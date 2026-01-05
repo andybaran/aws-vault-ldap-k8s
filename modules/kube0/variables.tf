@@ -1,6 +1,7 @@
 variable "user_email" {
   type = string
   description = "e-mail address"
+  default = "user@ibm.com"
 }
 
 variable "instance_type" {

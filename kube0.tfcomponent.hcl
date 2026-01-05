@@ -12,6 +12,10 @@ component "kube0" {
         helm = provider.helm.this
         random = provider.random.this
         tls = provider.tls.this
+        null = provider.null.this
+        time = provider.time.this
+        cloudinit = provider.cloudinit.this
+        vault = provider.vault.this
     }
 
 }
