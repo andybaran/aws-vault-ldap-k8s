@@ -17,7 +17,8 @@ terraform {
 
 
 data "aws_vpc" "default" {
-  default = true
+  #default = true
+  id = component.kube0.module.vpc.vpc_id
 }
 
 // We need a keypair to obtain the local administrator credentials to an AWS Windows based EC2 instance. So we generate it locally here

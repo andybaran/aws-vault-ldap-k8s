@@ -5,7 +5,7 @@ data "aws_iam_session_context" "current" {
 }
 
 locals {
-  user_only          = replace(replace(var.ddr_user_email, "@hashicorp.com", "_test"), "@ibm.com", "_test")
+  user_only          = replace(replace(var.user_email, "@hashicorp.com", "_test"), "@ibm.com", "_test")
   extra_doormat_role = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws_${local.user_only}-developer"
   partition          = data.aws_partition.current.partition
 }
