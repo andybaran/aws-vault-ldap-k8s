@@ -84,6 +84,8 @@ provider "vault" "this" {
   config {
     # skip_child_token = true
     # address          = var.tfc_vault_dynamic_credentials.default.address
+    address = var.VAULT_ADDR
+    token   = var.VAULT_TOKEN
     namespace = "admin/${var.customer_name}"
 
     # auth_login_token_file {
