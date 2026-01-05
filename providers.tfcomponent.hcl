@@ -30,20 +30,20 @@ required_providers {
   }
 }
 
-variable "access_key" {
+variable "AWS_ACCESS_KEY_ID" {
   description = "AWS access key"
   type        = string
   ephemeral   = true
 }
 
-variable "secret_key" {
+variable "AWS_SECRET_ACCESS_KEY" {
   description = "AWS sensitive secret key."
   type        = string
   sensitive   = true
   ephemeral   = true
 }
 
-variable "session_token" {
+variable "AWS_SESSION_TOKEN" {
   description = "AWS session token."
   type        = string
   sensitive   = true
@@ -54,9 +54,9 @@ provider "aws" "this" {
   config {
   # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
   region = var.region
-  access_key = var.access_key
-  secret_key = var.secret_key
-  token      = var.session_token
+  access_key = var.AWS_ACCESS_KEY_ID
+  secret_key = var.AWS_SECRET_ACCESS_KEY
+  token      = var.AWS_SESSION_TOKEN
 
   #   default_tags {
   #     tags = {
