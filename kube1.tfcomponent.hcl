@@ -5,6 +5,7 @@ component "kube1" {
         user_email = var.user_email
         instance_type = var.instance_type
         vault_public_endpoint = var.vault_public_endpoint
+        demo_id = component.kube0.demo_id
     }
     providers = {
         aws = provider.aws.this

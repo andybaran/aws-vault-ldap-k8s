@@ -3,3 +3,9 @@ output "vpc_id" {
   value       = module.vpc.vpc_id
   sensitive   = false
 }
+
+output "demo_id" {
+  description = "The demo identifier."
+  value       = local.demo_id
+  sensitive   = false
+}

@@ -35,3 +35,11 @@ output "vpc_id" {
     ephemeral = false
     sensitive = false
 }
+
+output "demo_id" {
+    description = "The demo identifier."
+    value = component.kube0.demo_id
+    type = string
+    ephemeral = false
+    sensitive = false
+}
