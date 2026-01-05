@@ -20,13 +20,13 @@ component "kube0" {
 
 }
 
-output "cluster_endpoint" {
+/* output "cluster_endpoint" {
     description = "The endpoint for the EKS cluster."
     value = component.kube0.cluster_endpoint 
     type = string
     ephemeral = false
-    sensitive = false
-}
+    sensitive = falseß
+} */
 
 output "vpc_id" {
     description = "The VPC ID where the EKS cluster is deployed."

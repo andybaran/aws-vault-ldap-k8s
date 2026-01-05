@@ -6,7 +6,7 @@ component "ldap" {
         region = var.region
         prefix = var.customer_name
         allowlist_ip = "66.190.197.168/32"
-        vpc_id = component.kube0.outputs.vpc_id
+        vpc_id = component.kube0.vpc_id
     }
     providers = {
         aws = provider.aws.this
