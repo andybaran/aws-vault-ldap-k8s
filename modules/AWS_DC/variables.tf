@@ -56,3 +56,8 @@ variable "only_kerberos" {
   description = "Only allow kerberos auth"
   default = false
 }
+
+variable "vpc_id" {
+  type = string
+  description = "The VPC ID where the LDAP server will be deployed."
+}

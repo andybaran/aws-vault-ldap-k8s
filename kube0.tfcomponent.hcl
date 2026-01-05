@@ -30,7 +30,7 @@ output "cluster_endpoint" {
 
 output "vpc_id" {
     description = "The VPC ID where the EKS cluster is deployed."
-    value = component.kube0.module.vpc.vpc_id
+    value = component.kube0.outputs.vpc_id
     type = string
     ephemeral = false
     sensitive = false
