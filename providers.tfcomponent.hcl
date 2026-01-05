@@ -30,6 +30,45 @@ required_providers {
   }
 }
 
+variable "access_key" {
+  description = "AWS access key"
+  type        = string
+  ephemeral   = true
+}
+
+variable "secret_key" {
+  description = "AWS sensitive secret key."
+  type        = string
+  sensitive   = true
+  ephemeral   = true
+}
+
+variable "session_token" {
+  description = "AWS session token."
+  type        = string
+  sensitive   = true
+  ephemeral   = true
+}
+
+provider "aws" "this" {
+  config {
+  # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
+  region = var.region
+  access_key = var.access_key
+  secret_key = var.secret_key
+  token      = var.session_token
+
+  #   default_tags {
+  #     tags = {
+  #       Demo    = "vault-secrets-operator"
+  #       Company = local.customer_name
+  #       BU      = "DDR"
+  #       Env     = "dev"
+  #     }
+  #   }
+  }
+}
+
 provider "vault" "this" {
   config {
     # skip_child_token = true
@@ -42,21 +81,7 @@ provider "vault" "this" {
   }
 }
 
-provider "aws" "this" {
-  config {
-  # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
-  region = var.region
 
-  #   default_tags {
-  #     tags = {
-  #       Demo    = "vault-secrets-operator"
-  #       Company = local.customer_name
-  #       BU      = "DDR"
-  #       Env     = "dev"
-  #     }
-  #   }
-  }
-}
 
 provider "helm" "this" {
 /*   config {
