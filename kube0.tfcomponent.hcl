@@ -9,7 +9,7 @@ component "kube0" {
     providers = {
         aws = provider.aws.this
         kubernetes = provider.kubernetes.this
-        helm = provider.helm.thisß
+        helm = provider.helm.this
         random = provider.random.this
         tls = provider.tls.this
     }
@@ -18,7 +18,7 @@ component "kube0" {
 
 output "cluster_endpoint" {
     description = "The endpoint for the EKS cluster."
-    value = component.kube0.cluster_endpoint
+    value = component.kube0.cluster_endpoint   
     type = string
     ephemeral = false
     sensitive = false

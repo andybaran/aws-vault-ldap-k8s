@@ -1,11 +1,11 @@
 required_providers {
-  vault = {
-    source = "hashicorp/vault"
-    version = "5.6.0"
-  }
   aws = {
     source = "hashicorp/aws"
     version = "6.27.0"
+  }
+  vault = {
+    source = "hashicorp/vault"
+    version = "5.6.0"
   }
   kubernetes = {
     source = "hashicorp/kubernetes"
@@ -14,20 +14,31 @@ required_providers {
   helm = {
     source = "hashicorp/helm"
     version = "3.1.1"
-
   }
-    tls = {
-      source = "hashicorp/tls"
-      version = "~> 4.0.5"
-    }
-        random = {
-      source = "hashicorp/random"
-      version = "~> 3.6.0"
-    }
+  tls = {
+    source = "hashicorp/tls"
+    version = "~> 4.0.5"
+  }
+  random = {
+    source = "hashicorp/random"
+    version = "~> 3.6.0"
+  }
   http = {
     source = "hashicorp/http"
     version = "~> 3.5.0"
   }
+  cloudinit = {
+    source = "hashicorp/cloudinit"
+    version = "2.3.7"
+    }
+  null = {
+    source = "hashicorp/null"
+    version = "3.2.4"
+  }
+  time = {
+    source = "hashicorp/time"
+    version = "0.13.1"
+    }
 }
 
 variable "AWS_ACCESS_KEY_ID" {
@@ -81,8 +92,6 @@ provider "vault" "this" {
   }
 }
 
-
-
 provider "helm" "this" {
 /*   config {
   kubernetes = {
@@ -116,4 +125,13 @@ provider "random" "this" {
 }
 
 provider "http" "this" {
+}
+
+provider "cloudinit" "this" {
+}ß
+
+provider "null" "this" {
+}
+
+provider "time" "this" {
 }
