@@ -22,7 +22,7 @@ component "kube0" {
 
 output "cluster_endpoint" {
     description = "The endpoint for the EKS cluster."
-    value = component.kube0.cluster_endpoint   
+    value = component.kube0.cluster_endpoint 
     type = string
     ephemeral = false
     sensitive = false
@@ -30,7 +30,7 @@ output "cluster_endpoint" {
 
 output "vpc_id" {
     description = "The VPC ID where the EKS cluster is deployed."
-    value = component.kube0.outputs.vpc_id
+    value = component.kube0.vpc_id
     type = string
     ephemeral = false
     sensitive = false
