@@ -1,33 +1,30 @@
 resource "kubernetes_namespace_v1" "simple_app" {
-  count      = var.step_2 ? 1 : 0
-  depends_on = [time_sleep.step_2]
+  #count      = var.step_2 ? 1 : 0
+  #depends_on = [time_sleep.step_2]
   metadata {
     name = "simple-app"
   }
 }
 
 resource "aws_eip" "nginx_ingress" {
-  count = var.step_2 ? 3 : 0
+  #count =var.step_2 ? 3 : 0
   depends_on = [
-    time_sleep.step_2,
     kubernetes_namespace_v1.simple_app,
   ]
 }
 
 resource "time_sleep" "eip_wait" {
-  count = var.step_2 ? 1 : 0
+  #count =var.step_2 ? 1 : 0
   depends_on = [
-    time_sleep.step_2,
-    aws_eip.nginx_ingress,
+    aws_eip.nginx_ingress
   ]
   destroy_duration = "60s"
 }
 
 resource "helm_release" "nginx_ingress" {
-  count = var.step_2 ? 1 : 0
+  #count =var.step_2 ? 1 : 0
   depends_on = [
-    time_sleep.step_2,
-    time_sleep.eip_wait,
+    time_sleep.eip_wait
   ]
   name            = "ingress-nginx"
   repository      = "https://kubernetes.github.io/ingress-nginx"
@@ -50,8 +47,8 @@ EOT
 }
 
 resource "kubernetes_service_account_v1" "vault" {
-  count      = var.step_2 ? 1 : 0
-  depends_on = [time_sleep.step_2]
+  #count      = var.step_2 ? 1 : 0
+  #depends_on = [time_sleep.step_2]
   metadata {
     name      = "vault-auth"
     namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
@@ -60,8 +57,8 @@ resource "kubernetes_service_account_v1" "vault" {
 }
 
 resource "kubernetes_secret_v1" "vault_token" {
-  count      = var.step_2 ? 1 : 0
-  depends_on = [time_sleep.step_2]
+  #count      = var.step_2 ? 1 : 0
+  #depends_on = [time_sleep.step_2]
   metadata {
     name      = kubernetes_service_account_v1.vault[0].metadata.0.name
     namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
@@ -74,8 +71,8 @@ resource "kubernetes_secret_v1" "vault_token" {
 }
 
 resource "kubernetes_cluster_role_binding_v1" "vault" {
-  count      = var.step_2 ? 1 : 0
-  depends_on = [time_sleep.step_2]
+  #count      = var.step_2 ? 1 : 0
+  #depends_on = [time_sleep.step_2]
   metadata {
     name = "role-tokenreview-binding"
   }

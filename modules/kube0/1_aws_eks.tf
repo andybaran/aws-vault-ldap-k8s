@@ -12,7 +12,7 @@ locals {
 
 module "eks" {
   source                                   = "terraform-aws-modules/eks/aws"
-  version                                  = "21.10.1"
+  version                                  = "21.11.0"
   name                                     = "${local.resources_prefix}-eks"
   kubernetes_version                       = "1.34"
   endpoint_public_access                   = true

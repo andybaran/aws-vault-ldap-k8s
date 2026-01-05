@@ -1,6 +1,6 @@
 resource "helm_release" "vault_secrets_operator" {
-  count      = var.step_2 ? 1 : 0
-  depends_on = [time_sleep.step_2]
+  #count      = var.step_2 ? 1 : 0
+  #depends_on = [time_sleep.step_2]
   name       = "vault-secrets-operator"
   repository = "https://helm.releases.hashicorp.com"
   chart      = "vault-secrets-operator"
@@ -9,7 +9,7 @@ resource "helm_release" "vault_secrets_operator" {
   values = [<<-EOT
   defaultVaultConnection:
     enabled: true
-    address: ${var.ddr_vault_public_endpoint}
+    address: ${var.vault_public_endpoint}
   defaultAuthMethod:
     enabled: true
     namespace: ${vault_namespace.namespace.id}
