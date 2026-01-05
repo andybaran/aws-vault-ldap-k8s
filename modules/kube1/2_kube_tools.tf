@@ -51,7 +51,7 @@ resource "kubernetes_service_account_v1" "vault" {
   #depends_on = [time_sleep.step_2]
   metadata {
     name      = "vault-auth"
-    namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
+    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
   }
   automount_service_account_token = true
 }
@@ -60,8 +60,8 @@ resource "kubernetes_secret_v1" "vault_token" {
   #count      = var.step_2 ? 1 : 0
   #depends_on = [time_sleep.step_2]
   metadata {
-    name      = kubernetes_service_account_v1.vault[0].metadata.0.name
-    namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
+    name      = kubernetes_service_account_v1.vault.metadata.0.name
+    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
     annotations = {
       "kubernetes.io/service-account.name" = "vault-auth"
     }
@@ -85,7 +85,7 @@ resource "kubernetes_cluster_role_binding_v1" "vault" {
 
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account_v1.vault[0].metadata.0.name
-    namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
+    name      = kubernetes_service_account_v1.vault.metadata.0.name
+    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
   }
 }
