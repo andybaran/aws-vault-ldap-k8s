@@ -128,7 +128,7 @@ provider "http" "this" {
 }
 
 provider "cloudinit" "this" {
-}ßß
+}
 
 provider "null" "this" {
 }
