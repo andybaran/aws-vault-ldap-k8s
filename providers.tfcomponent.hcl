@@ -41,25 +41,7 @@ required_providers {
     }
 }
 
-variable "AWS_ACCESS_KEY_ID" {
-  description = "AWS access key"
-  type        = string
-  ephemeral   = true
-}
 
-variable "AWS_SECRET_ACCESS_KEY" {
-  description = "AWS sensitive secret key."
-  type        = string
-  sensitive   = true
-  ephemeral   = true
-}
-
-variable "AWS_SESSION_TOKEN" {
-  description = "AWS session token."
-  type        = string
-  sensitive   = true
-  ephemeral   = true
-}
 
 provider "aws" "this" {
   config {
