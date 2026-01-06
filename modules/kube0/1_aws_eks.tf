@@ -19,21 +19,21 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
   vpc_id                                   = module.vpc.vpc_id
   subnet_ids                               = module.vpc.private_subnets
-  access_entries = {
-    example = {
-      kubernetes_groups = []
-      principal_arn     = local.extra_doormat_role
+  # access_entries = {
+  #   example = {
+  #     kubernetes_groups = []
+  #     principal_arn     = local.extra_doormat_role
 
-      policy_associations = {
-        admin = {
-          policy_arn = "arn:${local.partition}:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-  }
+  #     policy_associations = {
+  #       admin = {
+  #         policy_arn = "arn:${local.partition}:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  #         access_scope = {
+  #           type = "cluster"
+  #         }
+  #       }
+  #     }
+  #   }
+  # }
   kms_key_administrators = [
     local.extra_doormat_role,
     data.aws_iam_session_context.current.issuer_arn,
