@@ -79,7 +79,7 @@ provider "helm" "this" {
   kubernetes = {
     host                   = component.kube0.cluster_endpoint
     cluster_ca_certificate = base64decode(component.kube0.kube_cluster_certificate_authority_data)
-    exec {
+    exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
       args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name]
       command     = "aws"
