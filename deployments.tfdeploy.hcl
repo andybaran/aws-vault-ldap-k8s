@@ -26,5 +26,5 @@ deployment "developmnent" {
     VAULT_ADDR = store.varset.vault_creds.VAULT_ADDR
 
   }
-
+  destroy = true 
 }
