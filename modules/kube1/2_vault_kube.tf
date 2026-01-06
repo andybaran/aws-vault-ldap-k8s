@@ -12,7 +12,8 @@ resource "vault_kubernetes_auth_backend_config" "kube_auth_cfg" {
   backend            = vault_auth_backend.kube_auth.path
   kubernetes_ca_cert = base64decode(var.kube_cluster_certificate_authority_data)
   kubernetes_host    = var.cluster_endpoint
-  token_reviewer_jwt = kubernetes_secret_v1.vault_token.data#["token"]
+  #!!! This is optional and may need to be set if there are failures
+  #token_reviewer_jwt = kubernetes_secret_v1.vault_token.data["token"]
 }
 
 resource "vault_kubernetes_auth_backend_role" "simple_app_role" {
