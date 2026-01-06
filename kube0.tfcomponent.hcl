@@ -44,9 +44,9 @@ output "cluster_endpoint" {
     sensitive = false
 }
 
-output "kube_kube_cluster_certificate_authority_data" {
+output "kube_cluster_certificate_authority_data" {
     description = "Kube cluster CA data"
-    value = component.kube0.kube_kube_cluster_certificate_authority_data
+    value = component.kube0.kube_cluster_certificate_authority_data
     type = string
     ephemeral = false
     sensitive = true

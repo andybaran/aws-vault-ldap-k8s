@@ -10,7 +10,7 @@ resource "vault_kubernetes_auth_backend_config" "kube_auth_cfg" {
   #depends_on         = [time_sleep.step_2]
   namespace          = vault_namespace.namespace.path
   backend            = vault_auth_backend.kube_auth.path
-  kubernetes_ca_cert = base64decode(var.kubeconfig)
+  kubernetes_ca_cert = base64decode(var.kube_cluster_certificate_authority_data)
   kubernetes_host    = var.cluster_endpoint
   token_reviewer_jwt = kubernetes_secret_v1.vault_token.data["token"]
 }

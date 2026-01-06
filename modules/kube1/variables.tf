@@ -13,7 +13,7 @@ variable "cluster_endpoint" {
   type        = string
 }
 
-variable "kube_kube_cluster_certificate_authority_data" {
+variable "kube_cluster_certificate_authority_data" {
   description = "Kube cluster CA data"
   type        = string
 }
