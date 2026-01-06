@@ -6,7 +6,7 @@ resource "kubernetes_ingress_v1" "apps" {
   ]
   metadata {
     name      = "simple-app"
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = var.kube_namespace
     annotations = {
       "kubernetes.io/ingress.class"              = "nginx"
       "ingress.kubernetes.io/ssl-redirect"       = "false"
