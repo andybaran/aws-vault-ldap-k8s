@@ -82,6 +82,7 @@ component "kube2" {
     }
     providers = {
         kubernetes = provider.kubernetes.this
+        time = provider.time.this
     }
 
 }
