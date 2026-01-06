@@ -8,7 +8,7 @@ store varset "vault_creds" {
   category = "env"
 }
 
-deployment "developmnent" {
+deployment "development" {
   inputs = {
     region = "us-east-2"
     customer_name = "fidelity"
@@ -26,5 +26,4 @@ deployment "developmnent" {
     VAULT_ADDR = store.varset.vault_creds.VAULT_ADDR
 
   }
-  destroy = true 
 }
