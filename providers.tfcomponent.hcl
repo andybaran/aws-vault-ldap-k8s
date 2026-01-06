@@ -41,8 +41,6 @@ required_providers {
     }
 }
 
-
-
 provider "aws" "this" {
   config {
   # shared_config_files = [var.tfc_aws_dynamic_credentials.default.shared_config_file]
@@ -77,17 +75,17 @@ provider "vault" "this" {
 }
 
 provider "helm" "this" {
-/*   config {
+  config {
   kubernetes = {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    exec = {
+    host                   = component.kube0.cluster_endpoint
+    cluster_ca_certificate = base64decode(component.kube0.kube_cluster_certificate_authority_data)
+    exec {
       api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+      args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name]
       command     = "aws"
     }
   }
-  } */
+  }
 }
 
 provider "kubernetes" "this" {
