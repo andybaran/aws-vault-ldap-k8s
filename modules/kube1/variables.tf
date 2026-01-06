@@ -17,3 +17,8 @@ variable "kube_cluster_certificate_authority_data" {
   description = "Kube cluster CA data"
   type        = string
 }
+
+variable "eks_cluster_name" {
+  description = "The name of the EKS cluster."
+  type        = string
+}
