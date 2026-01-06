@@ -7,3 +7,13 @@ variable "demo_id" {
   description = "demo id"
   type = string
 }
+
+variable "cluster_endpoint" {
+  description = "The endpoint for the EKS cluster."
+  type        = string
+}
+
+variable "kube_kube_cluster_certificate_authority_data" {
+  description = "Kube cluster CA data"
+  type        = string
+}

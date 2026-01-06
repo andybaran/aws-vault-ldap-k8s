@@ -9,3 +9,15 @@ output "demo_id" {
   value       = local.demo_id
   sensitive   = false
 }
+
+output "cluster_endpoint" {
+  description = "The endpoint for the EKS cluster."
+  value       = module.eks.cluster_endpoint
+  sensitive   = false
+}
+
+output "kube_cluster_certificate_authority_data" {
+  description = "Kubeconfig file content to access the EKS cluster."
+  value       = module.eks.kubeconfig.cluster_certificate_authority_data
+  sensitive   = true
+}

@@ -20,14 +20,6 @@ component "kube0" {
 
 }
 
-/* output "cluster_endpoint" {
-    description = "The endpoint for the EKS cluster."
-    value = component.kube0.cluster_endpoint 
-    type = string
-    ephemeral = false
-    sensitive = falseß
-} */
-
 output "vpc_id" {
     description = "The VPC ID where the EKS cluster is deployed."
     value = component.kube0.vpc_id
@@ -42,4 +34,20 @@ output "demo_id" {
     type = string
     ephemeral = false
     sensitive = false
+}
+
+output "cluster_endpoint" {
+    description = "The endpoint for the EKS cluster."
+    value = component.kube0.cluster_endpoint
+    type = string
+    ephemeral = false
+    sensitive = false
+}
+
+output "kube_kube_cluster_certificate_authority_data" {
+    description = "Kube cluster CA data"
+    value = component.kube0.kube_kube_cluster_certificate_authority_data
+    type = string
+    ephemeral = false
+    sensitive = true
 }
