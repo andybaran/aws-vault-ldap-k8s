@@ -63,6 +63,7 @@ component "kube1" {
         demo_id = component.kube0.demo_id
         cluster_endpoint = component.kube0.cluster_endpoint
         kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
+        eks_cluster_name = component.kube0.eks_cluster_name
     }
     providers = {
         aws = provider.aws.this
