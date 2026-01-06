@@ -112,7 +112,7 @@ provider "kubernetes" "this" {
     command     = "aws"
   }
   } */
-}
+
 
 provider "tls" "this" {
 }
