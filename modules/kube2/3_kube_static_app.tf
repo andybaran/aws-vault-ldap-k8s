@@ -17,7 +17,7 @@ metadata:
   namespace: var.kube_namespace
 spec:
   type: kv-v2
-  mount: ${vault_mount.credentials.path}
+  mount: var.vault_mount_credentials_path
   path: app/config
   destination:
     name: ${local.static_app_secret_name}
