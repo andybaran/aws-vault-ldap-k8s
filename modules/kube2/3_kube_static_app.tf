@@ -39,7 +39,7 @@ resource "kubernetes_deployment_v1" "static_app" {
   ]
   metadata {
     name      = "static-secrets"
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = var.kube_namespace
   }
 
   spec {
@@ -138,8 +138,8 @@ resource "kubernetes_service_v1" "static_app" {
   # count      = var.step_3 ? 1 : 0
   # depends_on = [time_sleep.step_3]
   metadata {
-    name      = kubernetes_deployment_v1.static_app[0].metadata.0.name
-    namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
+    name      = kubernetes_deployment_v1.static_app.metadata.0.name
+    namespace = var.kube_namespace
   }
 
   spec {
