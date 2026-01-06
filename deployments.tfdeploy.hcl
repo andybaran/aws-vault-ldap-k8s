@@ -27,5 +27,5 @@ deployment "development" {
 
   }
 
-  destroy = true
+  #destroy = true
 }
