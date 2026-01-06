@@ -79,6 +79,7 @@ component "kube2" {
     source = "./modules/kube2"
     inputs = {
         kube_namespace = component.kube1.kube_namespace
+        vault_mount_credentials_path = component.kube1.vault_mount_credentials_path
     }
     providers = {
         kubernetes = provider.kubernetes.this

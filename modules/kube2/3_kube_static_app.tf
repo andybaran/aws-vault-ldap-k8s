@@ -14,7 +14,7 @@ apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
   name: vault-static-secret
-  namespace: ${kubernetes_namespace_v1.simple_app.metadata.0.name}
+  namespace: var.kube_namespace
 spec:
   type: kv-v2
   mount: ${vault_mount.credentials.path}
