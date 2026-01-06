@@ -75,6 +75,17 @@ component "kube1" {
 
 }
 
+# component "kube2" {
+#     source = "./modules/kube2"
+#     inputs = {
+#         kube_namespace = component.kube1.kube_namespace
+#     }
+#     providers = {
+#         kubernetes = provider.kubernetes.this
+#     }
+
+# }
+
 
 component "ldap" {
     source = "./modules/AWS_DC"

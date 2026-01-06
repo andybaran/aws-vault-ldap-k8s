@@ -3,18 +3,18 @@ locals {
 }
 
 resource "kubernetes_manifest" "vault_static_secret" {
-  count = var.step_3 ? 1 : 0
-  depends_on = [
-    time_sleep.step_3,
-    helm_release.vault_secrets_operator,
-    vault_generic_secret.credentials,
-  ]
+  # count = var.step_3 ? 1 : 0
+  # depends_on = [
+  #   time_sleep.step_3,
+  #   helm_release.vault_secrets_operator,
+  #   vault_generic_secret.credentials,
+  # ]
   manifest = yamldecode(<<-EOF
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
   name: vault-static-secret
-  namespace: ${kubernetes_namespace_v1.simple_app[0].metadata.0.name}
+  namespace: ${kubernetes_namespace_v1.simple_app.metadata.0.name}
 spec:
   type: kv-v2
   mount: ${vault_mount.credentials.path}
@@ -32,14 +32,14 @@ EOF
 }
 
 resource "kubernetes_deployment_v1" "static_app" {
-  count = var.step_3 ? 1 : 0
+  #count = var.step_3 ? 1 : 0
   depends_on = [
-    time_sleep.step_3,
+    #time_sleep.step_3,
     kubernetes_manifest.vault_static_secret,
   ]
   metadata {
     name      = "static-secrets"
-    namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
+    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
   }
 
   spec {
@@ -135,8 +135,8 @@ resource "kubernetes_deployment_v1" "static_app" {
 }
 
 resource "kubernetes_service_v1" "static_app" {
-  count      = var.step_3 ? 1 : 0
-  depends_on = [time_sleep.step_3]
+  # count      = var.step_3 ? 1 : 0
+  # depends_on = [time_sleep.step_3]
   metadata {
     name      = kubernetes_deployment_v1.static_app[0].metadata.0.name
     namespace = kubernetes_namespace_v1.simple_app[0].metadata.0.name
