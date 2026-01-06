@@ -19,7 +19,7 @@ resource "helm_release" "vault_secrets_operator" {
     mount: ${try(vault_auth_backend.kube_auth.path, null)}
     kubernetes:
       role: ${try(vault_kubernetes_auth_backend_role.simple_app_role.role_name, null)}
-      serviceAccount: ${try(kubernetes_service_account_v1.vault.metadata.name, null)}
+      serviceAccount: ${try(kubernetes_service_account_v1.vault.metadata.0.name, null)}
       tokenAudiences:
         - vault
 EOT
