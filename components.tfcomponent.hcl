@@ -75,6 +75,7 @@ component "kube1" {
 
 }
 
+
 component "ldap" {
     source = "./modules/AWS_DC"
     inputs = {
