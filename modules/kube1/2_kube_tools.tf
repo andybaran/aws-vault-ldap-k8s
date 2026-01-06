@@ -1,3 +1,12 @@
+terraform {
+  required providers {  
+    kubernetes = {
+    source = "hashicorp/kubernetes"
+    version = "3.0.1"
+  }
+  }
+}
+
 resource "kubernetes_namespace_v1" "simple_app" {
   #count      = var.step_2 ? 1 : 0
   #depends_on = [time_sleep.step_2]
