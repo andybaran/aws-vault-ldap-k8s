@@ -14,10 +14,10 @@ apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
   name: vault-static-secret
-  namespace: var.kube_namespace
+  namespace: ${var.kube_namespace}
 spec:
   type: kv-v2
-  mount: var.vault_mount_credentials_path
+  mount: ${var.vault_mount_credentials_path}
   path: app/config
   destination:
     name: ${local.static_app_secret_name}
