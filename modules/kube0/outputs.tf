@@ -19,7 +19,7 @@ output "cluster_endpoint" {
 output "kube_cluster_certificate_authority_data" {
   description = "Kube cluster CA data"
   value       = module.eks.cluster_certificate_authority_data
-  sensitive   = true
+  sensitive   = false
 }
 
 output "eks_cluster_name" {
