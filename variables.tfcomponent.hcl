@@ -12,7 +12,7 @@ variable "customer_name" {
 variable "region" {
   description = "The AWS region to use for this demo."
   type        = string
-  default     = "us-west-2"
+  default     = "us-east-2"
 }
 
 variable "step_2" {
