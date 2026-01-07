@@ -13,7 +13,7 @@ deployment "development" {
     region = "us-east-2"
     customer_name = "fidelity"
     user_email = "andy.baran@hashicorp.com"
-    instance_type =  "t3.medium"
+    instance_type =  "m7i-flex.xlarge"
     vault_public_endpoint = "https://vault-cluster-public-vault-61ad1a65.ebf5a91e.z1.hashicorp.cloud:8200"
     
     #### Auth credentials for AWS
@@ -26,5 +26,5 @@ deployment "development" {
     VAULT_ADDR = store.varset.vault_creds.VAULT_ADDR
 
   }
-  #destroy = true
+  destroy = true
 }
