@@ -33,3 +33,9 @@ output "eks_cluster_id" {
   value       = module.eks.cluster_id 
   sensitive   = false 
 }
+
+output "eks_cluster_auth" {
+  description = "The authentication token for the EKS cluster."
+  value       = data.aws_eks_cluster_auth.eks_cluster_auth.token
+  sensitive   = false
+}

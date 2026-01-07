@@ -11,21 +11,6 @@ ephemeral "aws_eks_cluster_auth" "eks_token" {
   name = component.kube0.eks_cluster_id
 }
 
-provider "helm" {
-  kubernetes = {
-    host                   = var.cluster_endpoint
-    cluster_ca_certificate = base64decode(var.kube_cluster_certificate_authority_data)
-    token = aws_eks_cluster_auth.eks_token.token
-  }
-}
-
-provider "kubernetes" {
-    host                   = var.cluster_endpoint
-    cluster_ca_certificate = base64decode(var.kube_cluster_certificate_authority_data)
-    token = aws_eks_cluster_auth.eks_token.token
-}
-
-
 resource "kubernetes_namespace_v1" "simple_app" {
   #count      = var.step_2 ? 1 : 0
   #depends_on = [time_sleep.step_2]
