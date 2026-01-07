@@ -135,7 +135,6 @@ output "eks_cluster_token" {
     description = "The ID of the EKS cluster."
     value = component.kube0.eks_cluster_id
     type = string
-    ephemeral = true
     sensitive = false
 }
 
