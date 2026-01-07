@@ -49,7 +49,23 @@ output "kube_cluster_certificate_authority_data" {
     value = component.kube0.kube_cluster_certificate_authority_data
     type = string
     ephemeral = false
-    sensitive = true
+    sensitive = false
+}
+
+output "eks_cluster_name" {
+    description = "The name of the EKS cluster."
+    value = component.kube0.eks_cluster_name
+    type = string
+    ephemeral = false
+    sensitive = false
+}
+
+output "cluster_endpoint" {
+    description = "The endpoint for the EKS cluster."
+    value = component.kube0.cluster_endpoint
+    type = string
+    ephemeral = false
+    sensitive = false
 }
 
 
