@@ -79,11 +79,12 @@ provider "helm" "this" {
   kubernetes = {
     host                   = component.kube0.cluster_endpoint
     cluster_ca_certificate = base64decode(component.kube0.kube_cluster_certificate_authority_data)
-    exec = {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name, "--region", var.region]
-      command     = "aws"
-    }
+    token = component.kube0.eks_cluster_id
+    # exec = {
+    #   api_version = "client.authentication.k8s.io/v1beta1"
+    #   args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name, "--region", var.region]
+    #   command     = "aws"
+    # }
   }
   }
 }
@@ -92,25 +93,14 @@ provider "kubernetes" "this" {
   config {
     host                   = component.kube0.cluster_endpoint
     cluster_ca_certificate = base64decode(component.kube0.kube_cluster_certificate_authority_data)
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name, "--region", var.region]
-      command     = "aws"
-    }
+    token = component.kube0.eks_cluster_id
+    # exec {
+    #   api_version = "client.authentication.k8s.io/v1beta1"
+    #   args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name, "--region", var.region]
+    #   command     = "aws"
+    # }
   }
 }
-
-
-/*   config {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
-    command     = "aws"
-  }
-  } */
-
 
 provider "tls" "this" {
 }

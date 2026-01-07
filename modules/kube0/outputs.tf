@@ -27,3 +27,10 @@ output "eks_cluster_name" {
   value       = module.eks.cluster_name
   sensitive   = false
 }
+
+output "eks_cluster_id" {
+  description = "The ID of the EKS cluster."
+  value       = aws_eks_cluster_auth.eks_token.id
+  sensitive   = false
+  ephemeral = true 
+}

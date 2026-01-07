@@ -62,3 +62,7 @@ module "eks" {
     }
   }
 }
+
+ephemeral "aws_eks_cluster_auth" "eks_token" {
+  name = module.eks.cluster_id
+}

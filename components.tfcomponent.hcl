@@ -33,6 +33,7 @@ component "kube1" {
         cluster_endpoint = component.kube0.cluster_endpoint
         kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
         eks_cluster_name = component.kube0.eks_cluster_name
+        eks_cluster_id = component.kube0.eks_cluster_id
     }
     providers = {
         aws = provider.aws.this
@@ -127,6 +128,14 @@ output "eks_cluster_name" {
     value = component.kube0.eks_cluster_name
     type = string
     ephemeral = false
+    sensitive = false
+}
+
+output "eks_cluster_token" {
+    description = "The ID of the EKS cluster."
+    value = component.kube0.eks_cluster_id
+    type = string
+    ephemeral = true
     sensitive = false
 }
 
