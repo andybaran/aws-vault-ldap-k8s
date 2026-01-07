@@ -92,50 +92,50 @@ output "password" {
 
 }
 
-output "vpc_id" {
-    description = "The VPC ID where the EKS cluster is deployed."
-    value = component.kube0.vpc_id
-    type = string
-    ephemeral = false
-    sensitive = false
-}
+# output "vpc_id" {
+#     description = "The VPC ID where the EKS cluster is deployed."
+#     value = component.kube0.vpc_id
+#     type = string
+#     ephemeral = false
+#     sensitive = false
+# }
 
-output "demo_id" {
-    description = "The demo identifier."
-    value = component.kube0.demo_id
-    type = string
-    ephemeral = false
-    sensitive = false
-}
+# output "demo_id" {
+#     description = "The demo identifier."
+#     value = component.kube0.demo_id
+#     type = string
+#     ephemeral = false
+#     sensitive = false
+# }
 
-output "cluster_endpoint" {
-    description = "The endpoint for the EKS cluster."
-    value = component.kube0.cluster_endpoint
-    type = string
-    ephemeral = false
-    sensitive = false
-}
+# output "cluster_endpoint" {
+#     description = "The endpoint for the EKS cluster."
+#     value = component.kube0.cluster_endpoint
+#     type = string
+#     ephemeral = false
+#     sensitive = false
+# }
 
-output "kube_cluster_certificate_authority_data" {
-    description = "Kube cluster CA data"
-    value = component.kube0.kube_cluster_certificate_authority_data
-    type = string
-    ephemeral = false
-    sensitive = false
-}
+# output "kube_cluster_certificate_authority_data" {
+#     description = "Kube cluster CA data"
+#     value = component.kube0.kube_cluster_certificate_authority_data
+#     type = string
+#     ephemeral = false
+#     sensitive = false
+# }
 
-output "eks_cluster_name" {
-    description = "The name of the EKS cluster."
-    value = component.kube0.eks_cluster_name
-    type = string
-    ephemeral = false
-    sensitive = false
-}
+# output "eks_cluster_name" {
+#     description = "The name of the EKS cluster."
+#     value = component.kube0.eks_cluster_name
+#     type = string
+#     ephemeral = false
+#     sensitive = false
+# }
 
-output "eks_cluster_token" {
-    description = "The ID of the EKS cluster."
-    value = component.kube0.eks_cluster_id
-    type = string
-    sensitive = false
-}
+# output "eks_cluster_token" {
+#     description = "The ID of the EKS cluster."
+#     value = component.kube0.eks_cluster_id
+#     type = string
+#     sensitive = false
+# }
 

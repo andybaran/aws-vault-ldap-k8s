@@ -15,18 +15,6 @@ variable "region" {
   default     = "us-east-2"
 }
 
-variable "step_2" {
-  description = "Set to `true` once initial run is complete."
-  type        = bool
-  default     = false
-}
-
-variable "step_3" {
-  description = "Set to `true` once `step_2` run is complete."
-  type        = bool
-  default     = false
-}
-
 variable "instance_type" {
   description = "The EC2 instance type to use for the EKS worker nodes."
   type        = string
