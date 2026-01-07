@@ -74,9 +74,7 @@ provider "vault" "this" {
   }
 }
 
-ephemeral "aws_eks_cluster_auth" "eks_token" {
-  name = component.kube0.eks_cluster_id
-}
+
 
 provider "helm" "this" {
   config {
