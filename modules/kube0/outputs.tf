@@ -30,6 +30,6 @@ output "eks_cluster_name" {
 
 output "eks_cluster_id" {
   description = "The ID of the EKS cluster."
-  value       = aws_eks_cluster_auth.eks_token.id
+  value       = aws_eks_cluster_auth.eks_token.token
   sensitive   = false
 }
