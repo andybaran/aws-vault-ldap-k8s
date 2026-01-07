@@ -39,3 +39,9 @@ output "eks_cluster_auth" {
   value       = data.aws_eks_cluster_auth.eks_cluster_auth.token
   sensitive   = true
 }
+
+output "first_private_subnet_id" {
+  description = "The first private subnet ID where the EKS cluster is deployed."
+  value       = module.vpc.private_subnets[0]
+  sensitive   = false
+}

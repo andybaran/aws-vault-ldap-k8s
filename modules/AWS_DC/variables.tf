@@ -61,3 +61,8 @@ variable "vpc_id" {
   type = string
   description = "The VPC ID where the LDAP server will be deployed."
 }
+
+variable "subnet_id" {
+  type = string
+  description = "The Subnet ID where the LDAP server will be deployed."
+}

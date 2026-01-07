@@ -66,7 +66,7 @@ provider "vault" "this" {
     # address          = var.tfc_vault_dynamic_credentials.default.address
     address = var.VAULT_ADDR
     token   = var.VAULT_TOKEN
-    namespace = "admin/${var.customer_name}"
+    namespace = "admin"
 
     # auth_login_token_file {
     #   filename = var.tfc_vault_dynamic_credentials.default.token_filename
