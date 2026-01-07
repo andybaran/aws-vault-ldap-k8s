@@ -7,9 +7,6 @@ terraform {
   }
 }
 
-ephemeral "aws_eks_cluster_auth" "eks_token" {
-  name = component.kube0.eks_cluster_id
-}
 
 resource "kubernetes_namespace_v1" "simple_app" {
   #count      = var.step_2 ? 1 : 0
