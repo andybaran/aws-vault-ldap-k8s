@@ -33,26 +33,38 @@ resource "helm_release" "vault_cluster" {
 # EOT
 # ]
     set = [
+        { 
+            name = "global.tlsDisable"
+            value = "true"
+        },
     {
         name  = "server.ha.enabled"
         value = "true"
     },
     {
-        name  = "server.raft.enabled"
+        name  = "server.ha.raft.enabled"
+        value = "true"
+    },
+        {
+        name  = "server.ha.raft.setNodeId"
         value = "true"
     },
     {
         name = "server.image.repository"
-        value = "hashicorp/vault-enterprise"
+        value = "hashicorp/vault"#-enterprise"
     },
     {
         name = "server.image.tag"
-        value = "1.21.2-ent"
+        value = "1.21.2"#-ent"
     },
-    {
-        name  = "server.enterpriseLicense.secretName"
-        value = "vault-license"
-    },
+    # {
+    #     name  = "server.enterpriseLicense.secretName"
+    #     value = "vault-license"
+    # },
+        # {
+    #     name  = "server.enterpriseLicense.secretKey"
+    #     value = "license"
+    # },
     {
         name  = "ui.enabled"
         value = "true"
