@@ -1,6 +1,4 @@
 resource "helm_release" "vault_secrets_operator" {
-  #count      = var.step_2 ? 1 : 0
-  #depends_on = [time_sleep.step_2]
   name       = "vault-secrets-operator"
   repository = "https://helm.releases.hashicorp.com"
   chart      = "vault-secrets-operator"

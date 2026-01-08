@@ -8,14 +8,11 @@ component "kube0" {
     }
     providers = {
         aws = provider.aws.this
-      #  kubernetes = provider.kubernetes.this
-     #   helm = provider.helm.this
         random = provider.random.this
         tls = provider.tls.this
         null = provider.null.this
         time = provider.time.this
         cloudinit = provider.cloudinit.this
-     #   vault = provider.vault.this
     }
 
 }
@@ -45,18 +42,30 @@ component "kube1" {
 
 }
 
-component "kube2" {
-    source = "./modules/kube2"
+# component "kube2" {
+#     source = "./modules/kube2"
+#     inputs = {
+#         kube_namespace = component.kube1.kube_namespace
+#         vault_mount_credentials_path = component.kube1.vault_mount_credentials_path
+#     }
+#     providers = {
+#         kubernetes = provider.kubernetes.this
+#         time = provider.time.this
+#     }
+
+#     }
+
+component "vault_cluster" {
+    source = "./modules/vault"
     inputs = {
         kube_namespace = component.kube1.kube_namespace
-        vault_mount_credentials_path = component.kube1.vault_mount_credentials_path
+        vault_license_key = var.vault_license_key
     }
     providers = {
-        kubernetes = provider.kubernetes.this
-        time = provider.time.this
+        helm = provider.helm.this
     }
 
-}
+    }
 
 
 component "ldap" {
@@ -67,7 +76,7 @@ component "ldap" {
         allowlist_ip = "66.190.197.168/32"
         vpc_id = component.kube0.vpc_id
         subnet_id = component.kube0.first_private_subnet_id
-        #domain_controller_instance_type = var.instance_type
+        domain_controller_instance_type = var.instance_type
     }
     providers = {
         aws = provider.aws.this
@@ -75,7 +84,7 @@ component "ldap" {
         random = provider.random.this
     }
 
-}
+    }
 
 output "public-dns-address" {
         description = "This is the public DNS address of our instance"
@@ -84,6 +93,7 @@ output "public-dns-address" {
         ephemeral = false
         sensitive = false
     }
+
 output "password" {
         description = "This is the decrypted administrator password for the EC2 instance"
         value = component.ldap.password
@@ -91,52 +101,5 @@ output "password" {
         sensitive = false
         type = string
 
-}
-
-# output "vpc_id" {
-#     description = "The VPC ID where the EKS cluster is deployed."
-#     value = component.kube0.vpc_id
-#     type = string
-#     ephemeral = false
-#     sensitive = false
-# }
-
-# output "demo_id" {
-#     description = "The demo identifier."
-#     value = component.kube0.demo_id
-#     type = string
-#     ephemeral = false
-#     sensitive = false
-# }
-
-# output "cluster_endpoint" {
-#     description = "The endpoint for the EKS cluster."
-#     value = component.kube0.cluster_endpoint
-#     type = string
-#     ephemeral = false
-#     sensitive = false
-# }
-
-# output "kube_cluster_certificate_authority_data" {
-#     description = "Kube cluster CA data"
-#     value = component.kube0.kube_cluster_certificate_authority_data
-#     type = string
-#     ephemeral = false
-#     sensitive = false
-# }
-
-# output "eks_cluster_name" {
-#     description = "The name of the EKS cluster."
-#     value = component.kube0.eks_cluster_name
-#     type = string
-#     ephemeral = false
-#     sensitive = false
-# }
-
-# output "eks_cluster_token" {
-#     description = "The ID of the EKS cluster."
-#     value = component.kube0.eks_cluster_id
-#     type = string
-#     sensitive = false
-# }
+    }
 

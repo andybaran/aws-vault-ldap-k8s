@@ -3,12 +3,6 @@ locals {
 }
 
 resource "kubernetes_manifest" "vault_static_secret" {
-  # count = var.step_3 ? 1 : 0
-  # depends_on = [
-  #   time_sleep.step_3,
-  #   helm_release.vault_secrets_operator,
-  #   vault_generic_secret.credentials,
-  # ]
   manifest = yamldecode(<<-EOF
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
@@ -32,9 +26,7 @@ EOF
 }
 
 resource "kubernetes_deployment_v1" "static_app" {
-  #count = var.step_3 ? 1 : 0
   depends_on = [
-    #time_sleep.step_3,
     kubernetes_manifest.vault_static_secret,
   ]
   metadata {

@@ -68,3 +68,11 @@ variable "VAULT_ADDR" {
   type        = string
   ephemeral   = true
 }
+
+variable "vault_license_key" {
+  description = "The Vault Enterprise license key."
+  type        = string
+  default     = ""
+  ephemeral = true
+  sensitive = true 
+}

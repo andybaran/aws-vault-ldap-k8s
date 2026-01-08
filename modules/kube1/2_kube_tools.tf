@@ -9,8 +9,6 @@ terraform {
 
 
 resource "kubernetes_namespace_v1" "simple_app" {
-  #count      = var.step_2 ? 1 : 0
-  #depends_on = [time_sleep.step_2]
   metadata {
     name = "simple-app"
   }
@@ -24,7 +22,6 @@ resource "aws_eip" "nginx_ingress" {
 }
 
 resource "time_sleep" "eip_wait" {
-  #count =var.step_2 ? 1 : 0
   depends_on = [
     aws_eip.nginx_ingress
   ]
@@ -32,7 +29,6 @@ resource "time_sleep" "eip_wait" {
 }
 
 resource "helm_release" "nginx_ingress" {
-  #count =var.step_2 ? 1 : 0
   depends_on = [
     time_sleep.eip_wait
   ]
@@ -57,8 +53,6 @@ EOT
 }
 
 resource "kubernetes_service_account_v1" "vault" {
-  #count      = var.step_2 ? 1 : 0
-  #depends_on = [time_sleep.step_2]
   metadata {
     name      = "vault-auth"
     namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
@@ -67,8 +61,6 @@ resource "kubernetes_service_account_v1" "vault" {
 }
 
 resource "kubernetes_secret_v1" "vault_token" {
-  #count      = var.step_2 ? 1 : 0
-  #depends_on = [time_sleep.step_2]
   metadata {
     name      = kubernetes_service_account_v1.vault.metadata.0.name
     namespace = kubernetes_namespace_v1.simple_app.metadata.0.name

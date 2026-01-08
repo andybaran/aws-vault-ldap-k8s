@@ -1,13 +1,9 @@
 resource "vault_auth_backend" "kube_auth" {
-  #count      = var.step_2 ? 1 : 0
-  #depends_on = [time_sleep.step_2]
   namespace  = vault_namespace.namespace.path
   type       = "kubernetes"
 }
 
 resource "vault_kubernetes_auth_backend_config" "kube_auth_cfg" {
-  #count              = var.step_2 ? 1 : 0
-  #depends_on         = [time_sleep.step_2]
   namespace          = vault_namespace.namespace.path
   backend            = vault_auth_backend.kube_auth.path
   kubernetes_ca_cert = base64decode(var.kube_cluster_certificate_authority_data)
@@ -17,8 +13,6 @@ resource "vault_kubernetes_auth_backend_config" "kube_auth_cfg" {
 }
 
 resource "vault_kubernetes_auth_backend_role" "simple_app_role" {
-  #count                            = var.step_2 ? 1 : 0
-  #depends_on                       = [time_sleep.step_2]
   namespace                        = vault_namespace.namespace.path
   backend                          = vault_auth_backend.kube_auth.path
   role_name                        = "simple-app"

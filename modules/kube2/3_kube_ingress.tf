@@ -1,7 +1,5 @@
 resource "kubernetes_ingress_v1" "apps" {
-  #count = var.step_3 ? 1 : 0
   depends_on = [
-    #time_sleep.step_3,
     kubernetes_service_v1.static_app,
   ]
   metadata {
