@@ -8,14 +8,6 @@ resource "time_sleep" "wait_for_vault" {
   create_duration = "60s"
 }
 
-# Initialize Vault cluster
-resource "vault_raft_autopilot" "vault_init" {
-  depends_on = [time_sleep.wait_for_vault]
-
-  # This resource requires Vault to be accessible
-  # The actual initialization is handled by vault_init_unseal below
-}
-
 # Use Kubernetes exec to initialize Vault
 resource "kubernetes_job_v1" "vault_init" {
   depends_on = [time_sleep.wait_for_vault]
