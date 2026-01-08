@@ -19,17 +19,17 @@ resource "helm_release" "vault_cluster" {
   values = [<<-EOT
 global:
 server:
-    ha:
-        enabled: true
-    raft:
-        enabled: true
-    image:
-        repository: hashicorp/vault-enterprise
-        tag: 1.21.2-ent 
-    enterpriseLicense:
-        secretName: "vault-license"
-ui:
+  ha:
     enabled: true
+  raft:
+    enabled: true
+  image:
+    repository: hashicorp/vault-enterprise
+    tag: 1.21.2-ent 
+  enterpriseLicense:
+    secretName: "vault-license"
+ui:
+  enabled: true
 EOT
 ]
 }
