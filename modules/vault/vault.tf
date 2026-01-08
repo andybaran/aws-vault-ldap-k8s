@@ -4,7 +4,7 @@ data = {
 }
   metadata {
     name      = "vault-license"
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = var.kube_namespace
 }
 }
 
@@ -14,7 +14,7 @@ resource "helm_release" "vault_cluster" {
   name       = "vault"
   repository = "https://helm.releases.hashicorp.com"
   chart      = "hashicorp/vault"
-  namespace  = kubernetes_namespace_v1.simple_app.metadata.0.name
+  namespace  = var.kube_namespace
   version    = "0.31.0"
   values = [<<-EOT
 global:
