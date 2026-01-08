@@ -13,7 +13,7 @@ resource "helm_release" "vault_cluster" {
 
   name       = "vault"
   repository = "https://helm.releases.hashicorp.com"
-  chart      = "hashicorp/vault"
+  chart      = "vault"
   namespace  = var.kube_namespace
   version    = "0.31.0"
   values = [<<-EOT
