@@ -16,20 +16,47 @@ resource "helm_release" "vault_cluster" {
   chart      = "vault"
   namespace  = var.kube_namespace
   version    = "0.31.0"
-  values = [<<-EOT
-global:
-server:
-  ha:
-    enabled: true
-  raft:
-    enabled: true
-  image:
-    repository: hashicorp/vault-enterprise
-    tag: 1.21.2-ent 
-  enterpriseLicense:
-    secretName: "vault-license"
-ui:
-  enabled: true
-EOT
-]
+#   values = [<<-EOT
+# global:
+# server:
+#   ha:
+#     enabled: true
+#   raft:
+#     enabled: true
+#   image:
+#     repository: hashicorp/vault-enterprise
+#     tag: 1.21.2-ent 
+#   enterpriseLicense:
+#     secretName: "vault-license"
+# ui:
+#   enabled: true
+# EOT
+# ]
+    set = [
+    {
+        name  = "server.ha.enabled"
+        value = "true"
+    },
+    {
+        name  = "server.raft.enabled"
+        value = "true"
+    },
+    {
+        name = "server.image.repository"
+        value = "hashicorp/vault-enterprise"
+    },
+    {
+        name = "server.image.tag"
+        value = "1.21.2-ent"
+    },
+    {
+        name  = "server.enterpriseLicense.secretName"
+        value = "vault-license"
+    },
+    {
+        name  = "ui.enabled"
+        value = "true"
+    },
+
+    ]
 }
