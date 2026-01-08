@@ -63,6 +63,7 @@ component "vault_cluster" {
     }
     providers = {
         helm = provider.helm.this
+        kubernetes = provider.kubernetes.this
     }
 
     }
