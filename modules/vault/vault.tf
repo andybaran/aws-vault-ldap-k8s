@@ -1,12 +1,4 @@
-resource "kubernetes_secret_v1" "vault_license" {
-data = {
-    license = base64encode(var.vault_license_key)
-}
-  metadata {
-    name      = "vault-license"
-    namespace = var.kube_namespace
-}
-}
+
 
 
 resource "helm_release" "vault_cluster" {
@@ -51,20 +43,20 @@ resource "helm_release" "vault_cluster" {
     },
     {
         name = "server.image.repository"
-        value = "hashicorp/vault"#-enterprise"
+        value = "hashicorp/vault-enterprise"
     },
     {
         name = "server.image.tag"
-        value = "1.21.2"#-ent"
+        value = "1.21.2-ent"
     },
-    # {
-    #     name  = "server.enterpriseLicense.secretName"
-    #     value = "vault-license"
-    # },
-        # {
-    #     name  = "server.enterpriseLicense.secretKey"
-    #     value = "license"
-    # },
+    {
+        name  = "server.enterpriseLicense.secretName"
+        value = "vault-license"
+    },
+        {
+        name  = "server.enterpriseLicense.secretKey"
+        value = "license"
+    },
     {
         name  = "ui.enabled"
         value = "true"
