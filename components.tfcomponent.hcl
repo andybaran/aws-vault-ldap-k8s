@@ -15,7 +15,7 @@ component "kube0" {
         cloudinit = provider.cloudinit.this
     }
 
-}
+    }
 
 
 
@@ -40,7 +40,7 @@ component "kube1" {
         vault = provider.vault.this
     }
 
-}
+    }
 
 # component "kube2" {
 #     source = "./modules/kube2"
@@ -90,19 +90,34 @@ component "ldap" {
     }
 
 output "public-dns-address" {
-        description = "This is the public DNS address of our instance"
-        value = component.ldap.public-dns-address
-        type = string
-        ephemeral = false
-        sensitive = false
+    description = "This is the public DNS address of our instance"
+    value = component.ldap.public-dns-address
+    type = string
+    ephemeral = false
+    sensitive = false
     }
 
 output "password" {
-        description = "This is the decrypted administrator password for the EC2 instance"
-        value = component.ldap.password
-        ephemeral = false
-        sensitive = false
-        type = string
+    description = "This is the decrypted administrator password for the EC2 instance"
+    value = component.ldap.password
+    ephemeral = false
+    sensitive = false
+    type = string
 
     }
 
+output "eks_cluster_name" {
+    description = "The name of the EKS cluster."
+    value = component.kube0.eks_cluster_name
+    ephemeral = false
+    sensitive = false
+    type = string
+    }
+
+output "vault_service_name" {
+    description = "The Vault service name."
+    value = component.vault_cluster.vault_service_name
+    ephemeral = false
+    sensitive = false
+    type = string
+    }
