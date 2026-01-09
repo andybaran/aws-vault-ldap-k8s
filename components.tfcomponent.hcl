@@ -132,10 +132,10 @@ output "vault_service_name" {
     sensitive = false
     type = string
     }
-output "vault_root_token" {
-    description = "The Vault root token."
-    value = component.vault_cluster.vault_root_token
-    ephemeral = false
-    sensitive = false
-    type = string
-    }
+# output "vault_root_token" {
+#     description = "The Vault root token."
+#     value = component.vault_cluster.vault_root_token
+#     ephemeral = false
+#     sensitive = false
+#     type = string
+#     }
