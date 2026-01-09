@@ -19,21 +19,7 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
   vpc_id                                   = module.vpc.vpc_id
   subnet_ids                               = module.vpc.private_subnets
-  # access_entries = {
-  #   example = {
-  #     kubernetes_groups = []
-  #     principal_arn     = local.extra_doormat_role
 
-  #     policy_associations = {
-  #       admin = {
-  #         policy_arn = "arn:${local.partition}:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  #         access_scope = {
-  #           type = "cluster"
-  #         }
-  #       }
-  #     }
-  #   }
-  # }
   kms_key_administrators = [
     local.extra_doormat_role,
     data.aws_iam_session_context.current.issuer_arn,
@@ -51,6 +37,9 @@ module "eks" {
     vpc-cni = {
       before_compute = true
     }
+    aws-ebs-csi-driver = {
+      service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
+    }
   }
 
   eks_managed_node_groups = {
@@ -65,6 +54,42 @@ module "eks" {
 
 data "aws_eks_cluster_auth" "eks_cluster_auth" {
   name = module.eks.cluster_name
+}
+
+# IAM role for EBS CSI Driver
+data "aws_iam_policy_document" "ebs_csi_driver_assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "${module.eks.oidc_provider}:sub"
+      values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${module.eks.oidc_provider}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ebs_csi_driver" {
+  name               = "${local.resources_prefix}-ebs-csi-driver"
+  assume_role_policy = data.aws_iam_policy_document.ebs_csi_driver_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
+  role       = aws_iam_role.ebs_csi_driver.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
 

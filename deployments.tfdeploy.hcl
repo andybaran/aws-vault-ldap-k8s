@@ -26,21 +26,6 @@ deployment "development" {
     VAULT_ADDR = store.varset.vault_creds.VAULT_ADDR
 
   }
-  destroy = true
+  #destroy = true
 }
-
-
-
-
-
-
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
-# https://dev.to/aws-builders/kubernetes-storage-playlist-part-3-implementing-amazon-ebs-storage-with-amazon-eks-using-1afc
 

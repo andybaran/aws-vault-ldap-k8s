@@ -69,6 +69,38 @@ resource "helm_release" "vault_cluster" {
         name  = "ui.enabled"
         value = "true"
     },
+    {
+        name  = "server.dataStorage.enabled"
+        value = "true"
+    },
+    {
+        name  = "server.dataStorage.size"
+        value = "10Gi"
+    },
+    {
+        name  = "server.dataStorage.storageClass"
+        value = kubernetes_storage_class_v1.vault_storage.metadata[0].name
+    },
+    {
+        name  = "server.dataStorage.accessMode"
+        value = "ReadWriteOnce"
+    },
+    {
+        name  = "server.auditStorage.enabled"
+        value = "true"
+    },
+    {
+        name  = "server.auditStorage.size"
+        value = "10Gi"
+    },
+    {
+        name  = "server.auditStorage.storageClass"
+        value = kubernetes_storage_class_v1.vault_storage.metadata[0].name
+    },
+    {
+        name  = "server.auditStorage.accessMode"
+        value = "ReadWriteOnce"
+    },
 
     ]
 }
