@@ -14,15 +14,15 @@ data = {
 }
 }
 
-resource "kubernetes_secret_v1" "vault_init_data" {
+resource "kubernetes_secret_v1" "vault-init-data" {
   metadata {
-    name      = "vault_init_data"
+    name      = "vault-init-data"
     namespace = var.kube_namespace
 }
 }
 
 # Service Account for the Job
-resource "kubernetes_service_account" "secret_writer" {
+resource "kubernetes_service_account_v1" "secret_writer" {
   metadata {
     name      = "secret-writer-sa"
     namespace = var.kube_namespace
@@ -30,7 +30,7 @@ resource "kubernetes_service_account" "secret_writer" {
 }
 
 # Role with permissions to manage secrets
-resource "kubernetes_role" "secret_writer" {
+resource "kubernetes_role_v1" "secret_writer" {
   metadata {
     name      = "secret-writer-role"
     namespace = var.kube_namespace
@@ -39,13 +39,13 @@ resource "kubernetes_role" "secret_writer" {
   rule {
     api_groups     = [""]
     resources      = ["secrets"]
-    resource_names = ["vault_init_data"]  # Only allow access to this specific secret
+    resource_names = ["vault-init-data"]  # Only allow access to this specific secret
     verbs          = ["get", "create", "update", "patch"]
   }
 }
 
 # RoleBinding to bind the ServiceAccount to the Role
-resource "kubernetes_role_binding" "secret_writer" {
+resource "kubernetes_role_binding_v1" "secret_writer" {
   metadata {
     name      = "secret-writer-binding"
     namespace = var.kube_namespace
@@ -113,7 +113,7 @@ resource "kubernetes_job_v1" "vault_init" {
               chmod +x jq-linux-amd64
 
               # Store init data in Kubernetes secret
-              kubectl create secret generic ${kubernetes_secret_v1.vault_init_data.metadata[0].name} \
+              kubectl create secret generic ${kubernetes_secret_v1.vault-init-data.metadata[0].name} \
                 --from-file=init.json=/tmp/init.json \
                 -n ${var.kube_namespace} \
                 --dry-run=client -o yaml | kubectl apply -f -
