@@ -1,8 +1,8 @@
-output "vault_unseal_keys" {
-  description = "Vault unseal keys (base64 encoded)"
-  value       = local.unseal_keys_b64
-  sensitive   = true
-}
+# output "vault_unseal_keys" {
+#   description = "Vault unseal keys (base64 encoded)"
+#   value       = local.unseal_keys_b64
+#   sensitive   = true
+# }
 
 output "vault_root_token" {
   description = "Vault root token"

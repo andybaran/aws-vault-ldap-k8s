@@ -165,7 +165,7 @@ data "kubernetes_secret_v1" "vault_init_keys" {
 
 # Parse the JSON data
 locals {
-  vault_init_json = jsondecode(data.kubernetes_secret_v1.vault_init_keys.data)
-  unseal_keys_b64 = local.vault_init_json.unseal_keys_b64
+  #vault_init_json = jsondecode(data.kubernetes_secret_v1.vault_init_keys.data)
+  #unseal_keys_b64 = local.vault_init_json.unseal_keys_b64
   root_token      = local.vault_init_json.root_token
 }
