@@ -6,5 +6,5 @@ variable "kube_namespace" {
 variable "vault_license_key" {
   description = "The Vault Enterprise license key."
   type        = string
-  sensitive = true 
+  sensitive = false 
 }
