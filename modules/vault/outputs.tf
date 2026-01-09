@@ -4,11 +4,11 @@
 #   sensitive   = true
 # }
 
-output "vault_root_token" {
-  description = "Vault root token"
-  value       = local.root_token
-  sensitive   = true
-}
+# output "vault_root_token" {
+#   description = "Vault root token"
+#   value       = local.root_token
+#   sensitive   = true
+# }
 
 output "vault_namespace" {
   description = "Kubernetes namespace where Vault is deployed"
