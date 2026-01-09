@@ -6,7 +6,7 @@
 # Secrets
 resource "kubernetes_secret_v1" "vault_license" {
 data = {
-    license = base64encode(var.vault_license_key)
+    license = var.vault_license_key
 }
   metadata {
     name      = "vault-license"
