@@ -5,13 +5,15 @@
 
 # Secrets
 resource "kubernetes_secret_v1" "vault_license" {
-data = {
-    license = var.vault_license_key
-}
+  data = {
+      license = var.vault_license_key
+  }
   metadata {
     name      = "vault-license"
     namespace = var.kube_namespace
-}
+  }
+  type = "Opaque"
+
 }
 
 resource "kubernetes_secret_v1" "vault-init-data" {
@@ -19,6 +21,7 @@ resource "kubernetes_secret_v1" "vault-init-data" {
     name      = "vault-init-data"
     namespace = var.kube_namespace
 }
+  type = "Opaque"
 }
 
 # Service Account for the Job
