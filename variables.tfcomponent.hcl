@@ -73,5 +73,5 @@ variable "vault_license_key" {
   description = "The Vault Enterprise license key."
   type        = string
   default     = ""
-  sensitive = true 
+  sensitive   = true
 }
