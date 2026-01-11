@@ -7,6 +7,7 @@
 resource "kubernetes_secret_v1" "vault_license" {
   data = {
       license = var.vault_license_key
+      test = "testvalue"
   }
   metadata {
     name      = "vault-license"
