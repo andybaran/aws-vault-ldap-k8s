@@ -31,6 +31,7 @@ component "kube1" {
         kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
         eks_cluster_name = component.kube0.eks_cluster_name
         eks_cluster_id = component.kube0.eks_cluster_id
+        vault_license_key = var.vault_license_key
     }
     providers = {
         aws = provider.aws.this
@@ -59,7 +60,7 @@ component "vault_cluster" {
     source = "./modules/vault"
     inputs = {
         kube_namespace = component.kube1.kube_namespace
-        vault_license_key = var.vault_license_key
+
     }
     providers = {
         helm = provider.helm.this

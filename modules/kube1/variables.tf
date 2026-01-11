@@ -1,7 +1,7 @@
-variable "vault_public_endpoint" {
-  description = "The public endpoint URL for the Vault server."
-  type        = string
-}
+# variable "vault_public_endpoint" {
+#   description = "The public endpoint URL for the Vault server."
+#   type        = string
+# }
 
 variable "demo_id" {
   description = "demo id"
@@ -21,4 +21,11 @@ variable "kube_cluster_certificate_authority_data" {
 variable "eks_cluster_name" {
   description = "The name of the EKS cluster."
   type        = string
+}
+
+variable "vault_license_key" {
+  description = "The Vault Enterprise license key."
+  type        = string
+  default     = ""
+  sensitive = true 
 }

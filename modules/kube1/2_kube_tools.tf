@@ -8,6 +8,19 @@ terraform {
 }
 
 
+resource "kubernetes_secret_v1" "vault_license" {
+  data = {
+      license = var.vault_license_key
+      test = "testvalue"
+  }
+  metadata {
+    name      = "vault-license"
+    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+  }
+  type = "Opaque"
+
+}
+
 resource "kubernetes_namespace_v1" "simple_app" {
   metadata {
     name = "simple-app"

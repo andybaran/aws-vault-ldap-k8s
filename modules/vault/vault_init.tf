@@ -4,18 +4,7 @@
 
 
 # Secrets
-resource "kubernetes_secret_v1" "vault_license" {
-  data = {
-      license = var.vault_license_key
-      test = "testvalue"
-  }
-  metadata {
-    name      = "vault-license"
-    namespace = var.kube_namespace
-  }
-  type = "Opaque"
 
-}
 
 resource "kubernetes_secret_v1" "vault-init-data" {
   metadata {
