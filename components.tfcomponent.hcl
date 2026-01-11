@@ -13,6 +13,7 @@ component "kube0" {
         null = provider.null.this
         time = provider.time.this
         cloudinit = provider.cloudinit.this
+        vault = provider.vault.this
     }
 
     }
