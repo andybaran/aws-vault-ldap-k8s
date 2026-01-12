@@ -125,13 +125,13 @@ output "eks_cluster_name" {
   type        = string
 }
 
-output "vault_service_name" {
-  description = "The Vault service name."
-  value       = component.vault_cluster.vault_service_name
-  ephemeral   = false
-  sensitive   = false
-  type        = string
-}
+# output "vault_service_name" {
+#   description = "The Vault service name."
+#   value       = component.vault_cluster.vault_service_name
+#   ephemeral   = false
+#   sensitive   = false
+#   type        = string
+# }
 # output "vault_root_token" {
 #     description = "The Vault root token."
 #     value = component.vault_cluster.vault_root_token
