@@ -220,5 +220,5 @@ resource "aws_eip" "admin_vm_eip" {
 }
 
 locals {
-  ssh_private_key = nonsensitive(tls_private_key.admin_vm_key.private_key_pem)
+  ssh_private_key = tls_private_key.admin_vm_key.private_key_pem
 }
