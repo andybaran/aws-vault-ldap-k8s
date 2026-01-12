@@ -218,3 +218,7 @@ resource "aws_eip" "admin_vm_eip" {
 
   depends_on = [aws_instance.admin_vm]
 }
+
+locals {
+  ssh_private_key = nonsensitive(tls_private_key.admin_vm_key.private_key_pem)
+}

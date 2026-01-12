@@ -20,7 +20,7 @@ output "admin_vm_public_dns" {
 
 output "ssh_private_key" {
   description = "The private SSH key to connect to the admin VM"
-  value       = tls_private_key.admin_vm_key.private_key_pem
+  value       = locals.ssh_private_key
   sensitive   = false
 }
 
