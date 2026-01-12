@@ -122,8 +122,20 @@ component "ldap" {
 }
 
 output "public-dns-address" {
-  description = "This is the public DNS address of our instance"
+  description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
   value       = component.ldap.public-dns-address
+  type        = string
+}
+
+output "ldap-eip-public-ip" {
+  description = "Elastic IP public address for the LDAP/DC instance"
+  value       = component.ldap.eip-public-ip
+  type        = string
+}
+
+output "ldap-private-ip" {
+  description = "Private IP address of the LDAP/DC instance"
+  value       = component.ldap.dc-priv-ip
   type        = string
 }
 
@@ -158,8 +170,20 @@ output "vault_ui_loadbalancer_hostname" {
 }
 
 output "admin_vm_public_ip" {
-  description = "Public IP address of the admin VM"
+  description = "Public IP address of the admin VM (via Elastic IP)"
   value       = component.admin_vm.admin_vm_public_ip
+  type        = string
+}
+
+output "admin_vm_public_dns" {
+  description = "Public DNS hostname of the admin VM (via Elastic IP)"
+  value       = component.admin_vm.admin_vm_public_dns
+  type        = string
+}
+
+output "admin_vm_private_ip" {
+  description = "Private IP address of the admin VM"
+  value       = component.admin_vm.admin_vm_private_ip
   type        = string
 }
 
@@ -173,7 +197,7 @@ output "admin_vm_ssh_key" {
   description = "Private SSH key for the admin VM"
   value       = component.admin_vm.ssh_private_key
   type        = string
-  sensitive   = true
+  sensitive   = false
 }
 
 # output "vault_root_token" {

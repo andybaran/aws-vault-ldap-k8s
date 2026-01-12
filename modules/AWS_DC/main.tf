@@ -156,6 +156,18 @@ resource "aws_instance" "domain_controller" {
   get_password_data = true
 }
 
+# Elastic IP for domain controller
+resource "aws_eip" "domain_controller_eip" {
+  domain   = "vpc"
+  instance = aws_instance.domain_controller.id
+
+  tags = {
+    Name = "${var.prefix}-dc-eip"
+  }
+
+  depends_on = [aws_instance.domain_controller]
+}
+
 locals {
   password = rsadecrypt(aws_instance.domain_controller.password_data,tls_private_key.rsa-4096-key.private_key_pem)
 }

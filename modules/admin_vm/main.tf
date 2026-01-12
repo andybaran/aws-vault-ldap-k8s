@@ -206,3 +206,15 @@ resource "aws_instance" "admin_vm" {
     Name = "vault-admin-vm-${var.environment}"
   }
 }
+
+# Elastic IP for admin VM
+resource "aws_eip" "admin_vm_eip" {
+  domain   = "vpc"
+  instance = aws_instance.admin_vm.id
+
+  tags = {
+    Name = "vault-admin-vm-eip-${var.environment}"
+  }
+
+  depends_on = [aws_instance.admin_vm]
+}
