@@ -100,7 +100,7 @@ resource "kubernetes_job_v1" "vault_init" {
             if vault status | grep -q "Initialized.*false"; then
               # Initialize Vault
               vault operator init -key-shares=5 -key-threshold=3 -format=json > /tmp/init.json
-
+              cat /tmp/init.json
               # Get JQ 
               echo "Get kubectl and jq"
               wget https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl

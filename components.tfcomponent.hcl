@@ -55,31 +55,31 @@ component "kube1" {
 
 #     }
 
-component "vault_cluster" {
-  source = "./modules/vault"
-  inputs = {
-    kube_namespace = component.kube1.kube_namespace
+# component "vault_cluster" {
+#   source = "./modules/vault"
+#   inputs = {
+#     kube_namespace = component.kube1.kube_namespace
 
-  }
-  providers = {
-    helm       = provider.helm.this
-    kubernetes = provider.kubernetes.this
-    vault      = provider.vault.this
-    time       = provider.time.this
-  }
+#   }
+#   providers = {
+#     helm       = provider.helm.this
+#     kubernetes = provider.kubernetes.this
+#     vault      = provider.vault.this
+#     time       = provider.time.this
+#   }
 
-}
-
-# removed {
-#     source = "./modules/vault"
-#     from = component.vault_cluster
-#     providers = {
-#         helm = provider.helm.this
-#         kubernetes = provider.kubernetes.this
-#         vault = provider.vault.this
-#         time = provider.time.this
-#     }
 # }
+
+removed {
+    source = "./modules/vault"
+    from = component.vault_cluster
+    providers = {
+        helm = provider.helm.this
+        kubernetes = provider.kubernetes.this
+        vault = provider.vault.this
+        time = provider.time.this
+    }
+}
 
 
 component "ldap" {
