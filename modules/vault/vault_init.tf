@@ -102,6 +102,9 @@ resource "kubernetes_job_v1" "vault_init" {
               vault operator init -key-shares=5 -key-threshold=3 -format=json > /tmp/init.json
 
               # Get JQ 
+              echo "Get kubectl and jq"
+              wget https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl
+              chmod +x kubectl
               wget https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64
               chmod +x jq-linux-amd64
 
