@@ -25,3 +25,29 @@ output "vault_initialized" {
   value       = true
   depends_on  = [kubernetes_job_v1.vault_init]
 }
+
+data "kubernetes_service_v1" "vault" {
+  metadata {
+    name      = "vault"
+    namespace = var.kube_namespace
+  }
+  depends_on = [helm_release.vault_cluster]
+}
+
+data "kubernetes_service_v1" "vault_ui" {
+  metadata {
+    name      = "vault-ui"
+    namespace = var.kube_namespace
+  }
+  depends_on = [helm_release.vault_cluster]
+}
+
+output "vault_loadbalancer_hostname" {
+  description = "Internal LoadBalancer hostname for Vault API"
+  value       = try(data.kubernetes_service_v1.vault.status[0].load_balancer[0].ingress[0].hostname, "pending")
+}
+
+output "vault_ui_loadbalancer_hostname" {
+  description = "Internal LoadBalancer hostname for Vault UI"
+  value       = try(data.kubernetes_service_v1.vault_ui.status[0].load_balancer[0].ingress[0].hostname, "pending")
+}

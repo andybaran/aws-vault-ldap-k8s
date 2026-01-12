@@ -104,6 +104,34 @@ resource "helm_release" "vault_cluster" {
     {
         name = "csi.enabled"
         value = "true"
+    },
+    {
+        name = "server.service.type"
+        value = "LoadBalancer"
+    },
+    {
+        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
+        value = "nlb"
+    },
+    {
+        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
+        value = "internal"
+    },
+    {
+        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-backend-protocol"
+        value = "tcp"
+    },
+    {
+        name = "ui.serviceType"
+        value = "LoadBalancer"
+    },
+    {
+        name = "ui.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
+        value = "nlb"
+    },
+    {
+        name = "ui.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
+        value = "internal"
     }
 
     ]
