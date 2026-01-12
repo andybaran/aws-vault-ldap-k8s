@@ -55,31 +55,31 @@ component "kube1" {
 
 #     }
 
-component "vault_cluster" {
-  source = "./modules/vault"
-  inputs = {
-    kube_namespace = component.kube1.kube_namespace
+# component "vault_cluster" {
+#   source = "./modules/vault"
+#   inputs = {
+#     kube_namespace = component.kube1.kube_namespace
 
-  }
-  providers = {
-    helm       = provider.helm.this
-    kubernetes = provider.kubernetes.this
-    vault      = provider.vault.this
-    time       = provider.time.this
-  }
+#   }
+#   providers = {
+#     helm       = provider.helm.this
+#     kubernetes = provider.kubernetes.this
+#     vault      = provider.vault.this
+#     time       = provider.time.this
+#   }
 
-}
-
-# removed {
-#     source = "./modules/vault"
-#     from = component.vault_cluster
-#     providers = {
-#         helm = provider.helm.this
-#         kubernetes = provider.kubernetes.this
-#         vault = provider.vault.this
-#         time = provider.time.this
-#     }
 # }
+
+removed {
+    source = "./modules/vault"
+    from = component.vault_cluster
+    providers = {
+        helm = provider.helm.this
+        kubernetes = provider.kubernetes.this
+        vault = provider.vault.this
+        time = provider.time.this
+    }
+}
 
 
 component "ldap" {
@@ -125,13 +125,13 @@ output "eks_cluster_name" {
   type        = string
 }
 
-output "vault_service_name" {
-  description = "The Vault service name."
-  value       = component.vault_cluster.vault_service_name
-  ephemeral   = false
-  sensitive   = false
-  type        = string
-}
+# output "vault_service_name" {
+#   description = "The Vault service name."
+#   value       = component.vault_cluster.vault_service_name
+#   ephemeral   = false
+#   sensitive   = false
+#   type        = string
+# }
 # output "vault_root_token" {
 #     description = "The Vault root token."
 #     value = component.vault_cluster.vault_root_token

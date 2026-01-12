@@ -101,6 +101,7 @@ resource "kubernetes_job_v1" "vault_init" {
               # Initialize Vault
               vault operator init -key-shares=5 -key-threshold=3 -format=json > /tmp/init.json
               cat /tmp/init.json
+
               # Get JQ 
               echo "Get kubectl and jq"
               wget https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl
@@ -115,9 +116,9 @@ resource "kubernetes_job_v1" "vault_init" {
                 --dry-run=client -o yaml | kubectl apply -f -
 
               # Unseal Vault using the keys
-              UNSEAL_KEY_1=$(./jq-linux-amd64 -r '.unseal_keys_b64[0:1][]' init.json)
-              UNSEAL_KEY_2=$(./jq-linux-amd64 -r '.unseal_keys_b64[1:2][]' init.json)
-              UNSEAL_KEY_3=$(./jq-linux-amd64 -r '.unseal_keys_b64[2:3][]' init.json)
+              UNSEAL_KEY_1=$(./jq-linux-amd64 -r '.unseal_keys_b64[0:1][]' /tmp/init.json)
+              UNSEAL_KEY_2=$(./jq-linux-amd64 -r '.unseal_keys_b64[1:2][]' /tmp/init.json)
+              UNSEAL_KEY_3=$(./jq-linux-amd64 -r '.unseal_keys_b64[2:3][]' /tmp/init.json)
 
               vault operator unseal $UNSEAL_KEY_1
               vault operator unseal $UNSEAL_KEY_2
