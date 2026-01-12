@@ -97,7 +97,7 @@ resource "kubernetes_job_v1" "vault_init" {
             done
 
             # Check if already initialized
-            if vault status | grep -q "Initialized.*false"; then
+            # if vault status | grep -q "Initialized.*false"; then
               # Initialize Vault
               vault operator init -key-shares=5 -key-threshold=3 -format=json > /tmp/init.json
               cat /tmp/init.json
@@ -123,10 +123,10 @@ resource "kubernetes_job_v1" "vault_init" {
               vault operator unseal $UNSEAL_KEY_2
               vault operator unseal $UNSEAL_KEY_3
 
-              echo "Vault initialized and unsealed successfully"
-            else
-              echo "Vault already initialized"
-            fi
+             # echo "Vault initialized and unsealed successfully"
+           # else
+            #  echo "Vault already initialized"
+           # fi
           EOT
           ]
 
