@@ -93,6 +93,18 @@ resource "helm_release" "vault_cluster" {
         name  = "server.auditStorage.accessMode"
         value = "ReadWriteOnce"
     },
+    {
+        name = "injector.enabled"
+        value = "false"
+    },
+    {
+        name = "ingress.enabled"
+        value = "true"
+    },
+    {
+        name = "csi.enabled"
+        value = "true"
+    }
 
     ]
 }
