@@ -112,51 +112,6 @@ locals {
     # Install helm
     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-    # Create welcome message with Vault connection info
-    cat > /etc/motd << 'MOTD'
-    ================================================================================
-
-    Welcome to the Vault Administration VM
-
-    This instance is configured to administer the Vault cluster.
-
-    Vault API LoadBalancer: ${var.vault_loadbalancer_hostname}:8200
-    Vault UI LoadBalancer:  ${var.vault_ui_loadbalancer_hostname}:8200
-    Vault Namespace: ${var.vault_namespace}
-
-    Installed tools:
-    - vault (Vault CLI)
-    - kubectl (Kubernetes CLI)
-    - aws (AWS CLI v2)
-    - helm (Helm package manager)
-    - jq, curl, wget, git
-
-    ================================================================================
-    Quick Start - Access Vault via Internal LoadBalancer:
-    ================================================================================
-
-    # Connect to Vault API directly via internal NLB (recommended):
-      export VAULT_ADDR=http://${var.vault_loadbalancer_hostname}:8200
-      vault status
-
-    # Access Vault UI in browser via internal NLB:
-      http://${var.vault_ui_loadbalancer_hostname}:8200
-
-    ================================================================================
-    Alternative - Access via kubectl port-forward:
-    ================================================================================
-
-    # Configure kubectl first:
-      aws eks update-kubeconfig --region ${var.region} --name ${var.eks_cluster_name}
-
-    # Port-forward to Vault:
-      kubectl port-forward -n ${var.vault_namespace} svc/${var.vault_service_name} 8200:8200 &
-      export VAULT_ADDR=http://localhost:8200
-      vault status
-
-    ================================================================================
-    MOTD
-
     # Set up ec2-user environment
     cat >> /home/ec2-user/.bashrc << 'BASHRC'
 
