@@ -37,7 +37,7 @@ component "kube1" {
     kubernetes = provider.kubernetes.this
     helm       = provider.helm.this
     time       = provider.time.this
-    vault      = provider.vault.this
+    #vault      = provider.vault.this
   }
 
 }
