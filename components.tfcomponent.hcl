@@ -103,22 +103,25 @@ component "ldap" {
 output "public-dns-address" {
   description = "This is the public DNS address of our instance"
   value       = component.ldap.public-dns-address
+  type        = string
 }
 
 output "password" {
   description = "This is the decrypted administrator password for the EC2 instance"
   value       = component.ldap.password
-
+  type        = string
 }
 
 output "eks_cluster_name" {
   description = "The name of the EKS cluster."
   value       = component.kube0.eks_cluster_name
+  type        = string
 }
 
 output "vault_service_name" {
   description = "The Vault service name."
   value       = component.vault_cluster.vault_service_name
+  type        = string
 }
 # output "vault_root_token" {
 #     description = "The Vault root token."
