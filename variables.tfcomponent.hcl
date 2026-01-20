@@ -55,4 +55,5 @@ variable "vault_license_key" {
   description = "The Vault Enterprise license key."
   type        = string
   sensitive   = false
+  ephemeral = true
 }
