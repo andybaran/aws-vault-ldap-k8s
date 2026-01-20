@@ -1,3 +1,5 @@
+
+
 component "kube0" {
   source = "./modules/kube0"
   inputs = {
