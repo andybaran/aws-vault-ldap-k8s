@@ -23,9 +23,8 @@ variable "eks_cluster_name" {
   type        = string
 }
 
-# variable "vault_license_key" {
-#   description = "The Vault Enterprise license key."
-#   type        = string
-#   default     = ""
-#   sensitive = true 
-# }
+variable "vault_license_key" {
+  description = "The Vault Enterprise license key."
+  type        = string
+  sensitive   = true
+}
