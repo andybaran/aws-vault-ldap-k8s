@@ -56,18 +56,18 @@ variable "AWS_SESSION_TOKEN" {
   ephemeral   = true
 }
 
-variable "VAULT_TOKEN" {
-  description = "Vault access token."
-  type        = string
-  sensitive   = true
-  ephemeral   = true
-}
+# variable "VAULT_TOKEN" {
+#   description = "Vault access token."
+#   type        = string
+#   sensitive   = true
+#   ephemeral   = true
+# }
 
-variable "VAULT_ADDR" {
-  description = "Vault address."
-  type        = string
-  ephemeral   = true
-}
+# variable "VAULT_ADDR" {
+#   description = "Vault address."
+#   type        = string
+#   ephemeral   = true
+# }
 
 variable "vault_license_key" {
   description = "The Vault Enterprise license key."
