@@ -157,17 +157,17 @@ output "vault_service_name" {
   type        = string
 }
 
-output "vault_loadbalancer_hostname" {
-  description = "Internal LoadBalancer hostname for Vault API"
-  value       = component.vault_cluster.vault_loadbalancer_hostname
-  type        = string
-}
+# output "vault_loadbalancer_hostname" {
+#   description = "Internal LoadBalancer hostname for Vault API"
+#   value       = component.vault_cluster.vault_loadbalancer_hostname
+#   type        = string
+# }
 
-output "vault_ui_loadbalancer_hostname" {
-  description = "Internal LoadBalancer hostname for Vault UI"
-  value       = component.vault_cluster.vault_ui_loadbalancer_hostname
-  type        = string
-}
+# output "vault_ui_loadbalancer_hostname" {
+#   description = "Internal LoadBalancer hostname for Vault UI"
+#   value       = component.vault_cluster.vault_ui_loadbalancer_hostname
+#   type        = string
+# }
 
 output "admin_vm_public_ip" {
   description = "Public IP address of the admin VM (via Elastic IP)"
