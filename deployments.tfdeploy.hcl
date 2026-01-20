@@ -21,11 +21,6 @@ deployment "development" {
     AWS_ACCESS_KEY_ID     = store.varset.aws_creds.AWS_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY = store.varset.aws_creds.AWS_SECRET_ACCESS_KEY
     AWS_SESSION_TOKEN     = store.varset.aws_creds.AWS_SESSION_TOKEN
-
-    #### Auth credentials for Vault
-    VAULT_TOKEN = store.varset.vault_creds.VAULT_TOKEN
-    VAULT_ADDR  = store.varset.vault_creds.VAULT_ADDR
-
   }
   #destroy = true
 }
