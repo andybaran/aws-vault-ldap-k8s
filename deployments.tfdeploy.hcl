@@ -5,7 +5,7 @@ store varset "aws_creds" {
 
 store varset "vault_license" {
   id       = "varset-fMrcJCnqUd6q4D9C"
-  category = "env"
+  category = "terraform"
 }
 
 deployment "development" {
