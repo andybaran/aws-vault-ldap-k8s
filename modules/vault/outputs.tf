@@ -42,12 +42,12 @@ data "kubernetes_service_v1" "vault_ui" {
   depends_on = [helm_release.vault_cluster]
 }
 
-# output "vault_loadbalancer_hostname" {
-#   description = "Internal LoadBalancer hostname for Vault API"
-#   value       = try(data.kubernetes_service_v1.vault.status[0].load_balancer[0].ingress[0].hostname, "pending")
-# }
+output "vault_loadbalancer_hostname" {
+  description = "Internal LoadBalancer hostname for Vault API"
+  value       = "http://${try(data.kubernetes_service_v1.vault.status[0].load_balancer[0].ingress[0].hostname, "pending")}:8200"
+}
 
-# output "vault_ui_loadbalancer_hostname" {
-#   description = "Internal LoadBalancer hostname for Vault UI"
-#   value       = try(data.kubernetes_service_v1.vault_ui.status[0].load_balancer[0].ingress[0].hostname, "pending")
-# }
+output "vault_ui_loadbalancer_hostname" {
+  description = "Internal LoadBalancer hostname for Vault UI"
+  value       = "http://${try(data.kubernetes_service_v1.vault_ui.status[0].load_balancer[0].ingress[0].hostname, "pending")}:8200"
+}
