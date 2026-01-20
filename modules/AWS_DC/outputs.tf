@@ -27,8 +27,3 @@ output "password" {
 output "aws_keypair_name" {
   value = aws_key_pair.rdp-key.key_name
 }
-
-# // AWS Security Group ID's
-# output "sec-group-id-list" {
-#   value = [aws_security_group.allow_all_internal.id, aws_security_group.rdp_ingress.id]
-# }

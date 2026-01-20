@@ -4,8 +4,3 @@ output "kube_namespace" {
     ephemeral = false
     sensitive = false
 }
-
-# output "vault_mount_credentials_path" {
-#     description = "The Vault mount path for the credentials KV store."
-#     value = vault_mount.credentials.path
-# }

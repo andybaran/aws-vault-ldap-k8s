@@ -17,7 +17,6 @@ terraform {
 
 
 data "aws_vpc" "default" {
-  #default = true
   id = var.vpc_id
 }
 
@@ -153,8 +152,3 @@ locals {
   password = rsadecrypt(aws_instance.domain_controller.password_data,tls_private_key.rsa-4096-key.private_key_pem)
 }
 
-#// This sleep will create a timer of 10 minutes
-#resource "time_sleep" "wait_10_minutes" {
-#  depends_on = [ aws_instance.domain_controller ]
-#  create_duration = "10m"
-#}

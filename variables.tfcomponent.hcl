@@ -1,11 +1,6 @@
 variable "customer_name" {
   description = "Specify the name of your customer. This helps to customize the resources created for your customer."
   type        = string
-
-  #validation {
-  #  condition     = length(var.customer_name) <= 50 && can(regex("^[a-z0-9-]*$", var.customer_name))
-  #  error_message = "Customer name must be 50 characters or less and can only contain lowercase letters, numbers, and hyphens"
-  #}
 }
 
 

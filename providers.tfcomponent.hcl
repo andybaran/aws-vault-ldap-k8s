@@ -82,11 +82,6 @@ provider "helm" "this" {
       host                   = component.kube0.cluster_endpoint
       cluster_ca_certificate = base64decode(component.kube0.kube_cluster_certificate_authority_data)
       token                  = component.kube0.eks_cluster_auth
-      # exec = {
-      #   api_version = "client.authentication.k8s.io/v1beta1"
-      #   args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name, "--region", var.region]
-      #   command     = "aws"
-      # }
     }
   }
 }
@@ -96,11 +91,6 @@ provider "kubernetes" "this" {
     host                   = component.kube0.cluster_endpoint
     cluster_ca_certificate = base64decode(component.kube0.kube_cluster_certificate_authority_data)
     token                  = component.kube0.eks_cluster_auth
-    # exec {
-    #   api_version = "client.authentication.k8s.io/v1beta1"
-    #   args        = ["eks", "get-token", "--cluster-name", component.kube0.eks_cluster_name, "--region", var.region]
-    #   command     = "aws"
-    # }
   }
 }
 
