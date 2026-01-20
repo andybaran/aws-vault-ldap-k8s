@@ -45,12 +45,12 @@ variable "vault_service_name" {
   default     = "vault"
 }
 
-variable "vault_loadbalancer_hostname" {
-  description = "Internal LoadBalancer hostname for Vault API"
-  type        = string
-}
+# variable "vault_loadbalancer_hostname" {
+#   description = "Internal LoadBalancer hostname for Vault API"
+#   type        = string
+# }
 
-variable "vault_ui_loadbalancer_hostname" {
-  description = "Internal LoadBalancer hostname for Vault UI"
-  type        = string
-}
+# variable "vault_ui_loadbalancer_hostname" {
+#   description = "Internal LoadBalancer hostname for Vault UI"
+#   type        = string
+# }
