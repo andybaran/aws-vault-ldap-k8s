@@ -115,12 +115,6 @@ locals {
     # Set up ec2-user environment
     cat >> /home/ec2-user/.bashrc << 'BASHRC'
 
-    # Vault environment variables
-    # export VAULT_NAMESPACE="${var.vault_namespace}"
-    # export VAULT_SERVICE="${var.vault_service_name}"
-    # export VAULT_ADDR="http://${var.vault_loadbalancer_hostname}:8200"
-    # export VAULT_UI_ADDR="http://${var.vault_ui_loadbalancer_hostname}:8200"
-
     # Helpful aliases
     alias k='kubectl'
     alias v='vault'
