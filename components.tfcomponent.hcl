@@ -93,6 +93,7 @@ component "admin_vm" {
     eks_cluster_name           = component.kube0.eks_cluster_name
     vault_namespace            = component.vault_cluster.vault_namespace
     vault_service_name         = component.vault_cluster.vault_service_name
+    shared_internal_sg_id      = component.kube0.shared_internal_sg_id
     # vault_loadbalancer_hostname = component.vault_cluster.vault_loadbalancer_hostname
     # vault_ui_loadbalancer_hostname = component.vault_cluster.vault_ui_loadbalancer_hostname
   }
@@ -110,8 +111,9 @@ component "ldap" {
     prefix                          = var.customer_name
     allowlist_ip                    = "66.190.197.168/32"
     vpc_id                          = component.kube0.vpc_id
-    subnet_id                       = component.kube0.first_private_subnet_id
+    subnet_id                       = component.kube0.first_public_subnet_id
     domain_controller_instance_type = var.instance_type
+    shared_internal_sg_id           = component.kube0.shared_internal_sg_id
   }
   providers = {
     aws    = provider.aws.this

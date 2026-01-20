@@ -45,3 +45,15 @@ output "first_private_subnet_id" {
   value       = module.vpc.private_subnets[0]
   sensitive   = false
 }
+
+output "first_public_subnet_id" {
+  description = "The first public subnet ID in the VPC."
+  value       = module.vpc.public_subnets[0]
+  sensitive   = false
+}
+
+output "shared_internal_sg_id" {
+  description = "Security group ID for shared internal communication between admin VM and domain controller"
+  value       = aws_security_group.shared_internal.id
+  sensitive   = false
+}

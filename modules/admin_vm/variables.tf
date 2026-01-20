@@ -45,6 +45,11 @@ variable "vault_service_name" {
   default     = "vault"
 }
 
+variable "shared_internal_sg_id" {
+  description = "Security group ID for shared internal communication"
+  type        = string
+}
+
 # variable "vault_loadbalancer_hostname" {
 #   description = "Internal LoadBalancer hostname for Vault API"
 #   type        = string

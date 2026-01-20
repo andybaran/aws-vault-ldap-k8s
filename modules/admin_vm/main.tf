@@ -54,31 +54,6 @@ resource "aws_security_group" "admin_vm_ssh" {
   }
 }
 
-resource "aws_security_group" "admin_vm_internal" {
-  name        = "admin-vm-internal-${var.environment}"
-  description = "Allow all internal traffic for admin VM"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    description = "All traffic from self"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
-  }
-
-  egress {
-    description = "All traffic to anywhere"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "admin-vm-internal-${var.environment}"
-  }
-}
 
 locals {
   user_data = <<-EOF
@@ -133,7 +108,7 @@ resource "aws_instance" "admin_vm" {
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [
     aws_security_group.admin_vm_ssh.id,
-    aws_security_group.admin_vm_internal.id
+    var.shared_internal_sg_id
   ]
 
   user_data = local.user_data

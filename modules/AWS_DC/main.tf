@@ -68,25 +68,6 @@ resource "aws_security_group" "rdp_ingress" {
   }
 }
 
-// Create an AWS security group to allow all traffic originating from the default vpc
-resource "aws_security_group" "allow_all_internal" {
-  name   = "${var.prefix}-allow-all-internal"
-  vpc_id = var.vpc_id
-
-  ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    self      = true
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 
 // Create a random string to be used in the user_data script
 resource "random_string" "DSRMPassword" {
@@ -121,7 +102,7 @@ data "aws_ami" "windows_2022" {
 resource "aws_instance" "domain_controller" {
   ami                    = data.aws_ami.windows_2022.id
   instance_type          = var.domain_controller_instance_type
-  vpc_security_group_ids = [aws_security_group.rdp_ingress.id, aws_security_group.allow_all_internal.id]
+  vpc_security_group_ids = [aws_security_group.rdp_ingress.id, var.shared_internal_sg_id]
   subnet_id = var.subnet_id
   key_name               = aws_key_pair.rdp-key.key_name
 

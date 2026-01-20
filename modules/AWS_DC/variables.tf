@@ -66,3 +66,8 @@ variable "subnet_id" {
   type = string
   description = "The Subnet ID where the LDAP server will be deployed."
 }
+
+variable "shared_internal_sg_id" {
+  description = "Security group ID for shared internal communication"
+  type        = string
+}
