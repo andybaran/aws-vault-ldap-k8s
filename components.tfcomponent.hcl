@@ -105,48 +105,48 @@ component "kube0" {
 
 # }
 
-component "ldap" {
-  source = "./modules/AWS_DC"
-  inputs = {
-    region                          = var.region
-    prefix                          = var.customer_name
-    allowlist_ip                    = "66.190.197.168/32"
-    vpc_id                          = component.kube0.vpc_id
-    subnet_id                       = component.kube0.first_public_subnet_id
-    domain_controller_instance_type = var.instance_type
-    shared_internal_sg_id           = component.kube0.shared_internal_sg_id
-  }
-  providers = {
-    aws    = provider.aws.this
-    tls    = provider.tls.this
-    random = provider.random.this
-  }
+# component "ldap" {
+#   source = "./modules/AWS_DC"
+#   inputs = {
+#     region                          = var.region
+#     prefix                          = var.customer_name
+#     allowlist_ip                    = "66.190.197.168/32"
+#     vpc_id                          = component.kube0.vpc_id
+#     subnet_id                       = component.kube0.first_public_subnet_id
+#     domain_controller_instance_type = var.instance_type
+#     shared_internal_sg_id           = component.kube0.shared_internal_sg_id
+#   }
+#   providers = {
+#     aws    = provider.aws.this
+#     tls    = provider.tls.this
+#     random = provider.random.this
+#   }
 
-}
+# }
 
-output "public-dns-address" {
-  description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
-  value       = component.ldap.public-dns-address
-  type        = string
-}
+# output "public-dns-address" {
+#   description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
+#   value       = component.ldap.public-dns-address
+#   type        = string
+# }
 
-output "ldap-eip-public-ip" {
-  description = "Elastic IP public address for the LDAP/DC instance"
-  value       = component.ldap.eip-public-ip
-  type        = string
-}
+# output "ldap-eip-public-ip" {
+#   description = "Elastic IP public address for the LDAP/DC instance"
+#   value       = component.ldap.eip-public-ip
+#   type        = string
+# }
 
-output "ldap-private-ip" {
-  description = "Private IP address of the LDAP/DC instance"
-  value       = component.ldap.dc-priv-ip
-  type        = string
-}
+# output "ldap-private-ip" {
+#   description = "Private IP address of the LDAP/DC instance"
+#   value       = component.ldap.dc-priv-ip
+#   type        = string
+# }
 
-output "password" {
-  description = "This is the decrypted administrator password for the EC2 instance"
-  value       = component.ldap.password
-  type        = string
-}
+# output "password" {
+#   description = "This is the decrypted administrator password for the EC2 instance"
+#   value       = component.ldap.password
+#   type        = string
+# }
 
 # output "eks_cluster_name" {
 #   description = "The name of the EKS cluster."
