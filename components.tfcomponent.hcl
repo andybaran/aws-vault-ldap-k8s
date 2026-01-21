@@ -1,47 +1,47 @@
 
-component "kube0" {
-  source = "./modules/kube0"
-  inputs = {
-    region        = var.region
-    customer_name = var.customer_name
-    user_email    = var.user_email
-    instance_type = var.instance_type
-  }
-  providers = {
-    aws       = provider.aws.this
-    random    = provider.random.this
-    tls       = provider.tls.this
-    null      = provider.null.this
-    time      = provider.time.this
-    cloudinit = provider.cloudinit.this
-    vault     = provider.vault.this
-  }
+# component "kube0" {
+#   source = "./modules/kube0"
+#   inputs = {
+#     region        = var.region
+#     customer_name = var.customer_name
+#     user_email    = var.user_email
+#     instance_type = var.instance_type
+#   }
+#   providers = {
+#     aws       = provider.aws.this
+#     random    = provider.random.this
+#     tls       = provider.tls.this
+#     null      = provider.null.this
+#     time      = provider.time.this
+#     cloudinit = provider.cloudinit.this
+#     vault     = provider.vault.this
+#   }
 
-}
+# }
 
-component "kube1" {
-  source = "./modules/kube1"
-  inputs = {
-    customer_name                           = var.customer_name
-    user_email                              = var.user_email
-    instance_type                           = var.instance_type
-    vault_public_endpoint                   = var.vault_public_endpoint
-    demo_id                                 = component.kube0.demo_id
-    cluster_endpoint                        = component.kube0.cluster_endpoint
-    kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
-    eks_cluster_name                        = component.kube0.eks_cluster_name
-    eks_cluster_id                          = component.kube0.eks_cluster_id
-    vault_license_key                       = var.vault_license_key
-  }
-  providers = {
-    aws        = provider.aws.this
-    kubernetes = provider.kubernetes.this
-    helm       = provider.helm.this
-    time       = provider.time.this
-    #vault      = provider.vault.this
-  }
+# component "kube1" {
+#   source = "./modules/kube1"
+#   inputs = {
+#     customer_name                           = var.customer_name
+#     user_email                              = var.user_email
+#     instance_type                           = var.instance_type
+#     vault_public_endpoint                   = var.vault_public_endpoint
+#     demo_id                                 = component.kube0.demo_id
+#     cluster_endpoint                        = component.kube0.cluster_endpoint
+#     kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
+#     eks_cluster_name                        = component.kube0.eks_cluster_name
+#     eks_cluster_id                          = component.kube0.eks_cluster_id
+#     vault_license_key                       = var.vault_license_key
+#   }
+#   providers = {
+#     aws        = provider.aws.this
+#     kubernetes = provider.kubernetes.this
+#     helm       = provider.helm.this
+#     time       = provider.time.this
+#     #vault      = provider.vault.this
+#   }
 
-}
+# }
 
 # component "kube2" {
 #     source = "./modules/kube2"
@@ -56,20 +56,20 @@ component "kube1" {
 
 #     }
 
-component "vault_cluster" {
-  source = "./modules/vault"
-  inputs = {
-    kube_namespace = component.kube1.kube_namespace
+# component "vault_cluster" {
+#   source = "./modules/vault"
+#   inputs = {
+#     kube_namespace = component.kube1.kube_namespace
 
-  }
-  providers = {
-    helm       = provider.helm.this
-    kubernetes = provider.kubernetes.this
-    vault      = provider.vault.this
-    #time       = provider.time.this
-  }
+#   }
+#   providers = {
+#     helm       = provider.helm.this
+#     kubernetes = provider.kubernetes.this
+#     vault      = provider.vault.this
+#     #time       = provider.time.this
+#   }
 
-}
+# }
 
 # removed {
 #     source = "./modules/vault"
@@ -148,29 +148,29 @@ output "password" {
   type        = string
 }
 
-output "eks_cluster_name" {
-  description = "The name of the EKS cluster."
-  value       = component.kube0.eks_cluster_name
-  type        = string
-}
+# output "eks_cluster_name" {
+#   description = "The name of the EKS cluster."
+#   value       = component.kube0.eks_cluster_name
+#   type        = string
+# }
 
-output "vault_service_name" {
-  description = "The Vault service name."
-  value       = component.vault_cluster.vault_service_name
-  type        = string
-}
+# output "vault_service_name" {
+#   description = "The Vault service name."
+#   value       = component.vault_cluster.vault_service_name
+#   type        = string
+# }
 
-output "vault_loadbalancer_hostname" {
-  description = "Internal LoadBalancer hostname for Vault API"
-  value       = component.vault_cluster.vault_loadbalancer_hostname
-  type        = string
-}
+# output "vault_loadbalancer_hostname" {
+#   description = "Internal LoadBalancer hostname for Vault API"
+#   value       = component.vault_cluster.vault_loadbalancer_hostname
+#   type        = string
+# }
 
-output "vault_ui_loadbalancer_hostname" {
-  description = "Internal LoadBalancer hostname for Vault UI"
-  value       = component.vault_cluster.vault_ui_loadbalancer_hostname
-  type        = string
-}
+# output "vault_ui_loadbalancer_hostname" {
+#   description = "Internal LoadBalancer hostname for Vault UI"
+#   value       = component.vault_cluster.vault_ui_loadbalancer_hostname
+#   type        = string
+# }
 
 output "admin_vm_public_ip" {
   description = "Public IP address of the admin VM (via Elastic IP)"
