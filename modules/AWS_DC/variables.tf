@@ -57,17 +57,17 @@ variable "only_kerberos" {
   default = false
 }
 
-variable "vpc_id" {
-  type = string
-  description = "The VPC ID where the LDAP server will be deployed."
-}
+# variable "vpc_id" {
+#   type = string
+#   description = "The VPC ID where the LDAP server will be deployed."
+# }
 
-variable "subnet_id" {
-  type = string
-  description = "The Subnet ID where the LDAP server will be deployed."
-}
+# variable "subnet_id" {
+#   type = string
+#   description = "The Subnet ID where the LDAP server will be deployed."
+# }
 
-variable "shared_internal_sg_id" {
-  description = "Security group ID for shared internal communication"
-  type        = string
-}
+# variable "shared_internal_sg_id" {
+#   description = "Security group ID for shared internal communication"
+#   type        = string
+# }
