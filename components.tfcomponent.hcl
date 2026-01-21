@@ -1,23 +1,23 @@
 
-# component "kube0" {
-#   source = "./modules/kube0"
-#   inputs = {
-#     region        = var.region
-#     customer_name = var.customer_name
-#     user_email    = var.user_email
-#     instance_type = var.instance_type
-#   }
-#   providers = {
-#     aws       = provider.aws.this
-#     random    = provider.random.this
-#     tls       = provider.tls.this
-#     null      = provider.null.this
-#     time      = provider.time.this
-#     cloudinit = provider.cloudinit.this
-#     vault     = provider.vault.this
-#   }
+component "kube0" {
+  source = "./modules/kube0"
+  inputs = {
+    region        = var.region
+    customer_name = var.customer_name
+    user_email    = var.user_email
+    instance_type = var.instance_type
+  }
+  providers = {
+    aws       = provider.aws.this
+    random    = provider.random.this
+    tls       = provider.tls.this
+    null      = provider.null.this
+    time      = provider.time.this
+    cloudinit = provider.cloudinit.this
+    vault     = provider.vault.this
+  }
 
-# }
+}
 
 # component "kube1" {
 #   source = "./modules/kube1"
