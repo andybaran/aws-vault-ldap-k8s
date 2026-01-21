@@ -10,11 +10,11 @@ component "kube0" {
   providers = {
     aws       = provider.aws.this
     random    = provider.random.this
-    # tls       = provider.tls.this
-    # null      = provider.null.this
-    # time      = provider.time.this
-    # cloudinit = provider.cloudinit.this
-    # vault     = provider.vault.this
+    tls       = provider.tls.this
+    null      = provider.null.this
+    time      = provider.time.this
+    cloudinit = provider.cloudinit.this
+    #vault     = provider.vault.this
   }
 
 }
