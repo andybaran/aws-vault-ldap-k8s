@@ -37,7 +37,6 @@ component "kube1" {
     kubernetes = provider.kubernetes.this
     helm       = provider.helm.this
     time       = provider.time.this
-    #vault      = provider.vault.this
   }
 
 }
@@ -64,7 +63,6 @@ component "vault_cluster" {
   providers = {
     helm       = provider.helm.this
     kubernetes = provider.kubernetes.this
-    vault      = provider.vault.this
     #time       = provider.time.this
   }
 
