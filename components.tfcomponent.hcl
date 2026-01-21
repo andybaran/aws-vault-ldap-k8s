@@ -1,5 +1,5 @@
-
-
+terraform {
+  required_version = "1.14.2"}
 component "kube0" {
   source = "./modules/kube0"
   inputs = {
