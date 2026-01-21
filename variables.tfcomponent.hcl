@@ -16,6 +16,11 @@ variable "instance_type" {
   default     = "t2.medium"
 }
 
+variable "vault_public_endpoint" {
+  type    = string
+  default = ""
+}
+
 variable "vault_root_namespace" {
   type    = string
   default = ""
