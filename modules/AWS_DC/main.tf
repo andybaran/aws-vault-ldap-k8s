@@ -18,7 +18,8 @@ terraform {
 
 
 data "aws_vpc" "default" {
-  id = var.vpc_id
+  default = true 
+  #id = var.vpc_id
 }
 
 // We need a keypair to obtain the local administrator credentials to an AWS Windows based EC2 instance. So we generate it locally here
@@ -102,8 +103,8 @@ data "aws_ami" "windows_2022" {
 resource "aws_instance" "domain_controller" {
   ami                    = data.aws_ami.windows_2022.id
   instance_type          = var.domain_controller_instance_type
-  vpc_security_group_ids = [aws_security_group.rdp_ingress.id, var.shared_internal_sg_id]
-  subnet_id = var.subnet_id
+  vpc_security_group_ids = [aws_security_group.rdp_ingress.id] #var.shared_internal_sg_id]
+  # subnet_id = var.subnet_id
   key_name               = aws_key_pair.rdp-key.key_name
 
   root_block_device {
