@@ -172,36 +172,36 @@ output "password" {
 #   type        = string
 # }
 
-output "admin_vm_public_ip" {
-  description = "Public IP address of the admin VM (via Elastic IP)"
-  value       = component.admin_vm.admin_vm_public_ip
-  type        = string
-}
+# output "admin_vm_public_ip" {
+#   description = "Public IP address of the admin VM (via Elastic IP)"
+#   value       = component.admin_vm.admin_vm_public_ip
+#   type        = string
+# }
 
-output "admin_vm_public_dns" {
-  description = "Public DNS hostname of the admin VM (via Elastic IP)"
-  value       = component.admin_vm.admin_vm_public_dns
-  type        = string
-}
+# output "admin_vm_public_dns" {
+#   description = "Public DNS hostname of the admin VM (via Elastic IP)"
+#   value       = component.admin_vm.admin_vm_public_dns
+#   type        = string
+# }
 
-output "admin_vm_private_ip" {
-  description = "Private IP address of the admin VM"
-  value       = component.admin_vm.admin_vm_private_ip
-  type        = string
-}
+# output "admin_vm_private_ip" {
+#   description = "Private IP address of the admin VM"
+#   value       = component.admin_vm.admin_vm_private_ip
+#   type        = string
+# }
 
-output "admin_vm_ssh_command" {
-  description = "SSH command to connect to the admin VM"
-  value       = component.admin_vm.ssh_connection_command
-  type        = string
-}
+# output "admin_vm_ssh_command" {
+#   description = "SSH command to connect to the admin VM"
+#   value       = component.admin_vm.ssh_connection_command
+#   type        = string
+# }
 
-output "admin_vm_ssh_key" {
-  description = "Private SSH key for the admin VM"
-  value       = component.admin_vm.ssh_private_key
-  type        = string
-  sensitive   = false
-}
+# output "admin_vm_ssh_key" {
+#   description = "Private SSH key for the admin VM"
+#   value       = component.admin_vm.ssh_private_key
+#   type        = string
+#   sensitive   = false
+# }
 
 # output "vault_root_token" {
 #     description = "The Vault root token."
