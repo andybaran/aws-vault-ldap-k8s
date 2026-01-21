@@ -63,21 +63,9 @@ component "vault_cluster" {
   providers = {
     helm       = provider.helm.this
     kubernetes = provider.kubernetes.this
-    #time       = provider.time.this
   }
 
 }
-
-# removed {
-#     source = "./modules/vault"
-#     from = component.vault_cluster
-#     providers = {
-#         helm = provider.helm.this
-#         kubernetes = provider.kubernetes.this
-#         vault = provider.vault.this
-#         time = provider.time.this
-#     }
-# }
 
 component "admin_vm" {
   source = "./modules/admin_vm"
