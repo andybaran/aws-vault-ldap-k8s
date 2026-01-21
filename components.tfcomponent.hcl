@@ -124,29 +124,29 @@ component "ldap" {
 
 }
 
-# output "public-dns-address" {
-#   description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
-#   value       = component.ldap.public-dns-address
-#   type        = string
-# }
+output "public-dns-address" {
+  description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
+  value       = component.ldap.public-dns-address
+  type        = string
+}
 
-# output "ldap-eip-public-ip" {
-#   description = "Elastic IP public address for the LDAP/DC instance"
-#   value       = component.ldap.eip-public-ip
-#   type        = string
-# }
+output "ldap-eip-public-ip" {
+  description = "Elastic IP public address for the LDAP/DC instance"
+  value       = component.ldap.eip-public-ip
+  type        = string
+}
 
-# output "ldap-private-ip" {
-#   description = "Private IP address of the LDAP/DC instance"
-#   value       = component.ldap.dc-priv-ip
-#   type        = string
-# }
+output "ldap-private-ip" {
+  description = "Private IP address of the LDAP/DC instance"
+  value       = component.ldap.dc-priv-ip
+  type        = string
+}
 
-# output "password" {
-#   description = "This is the decrypted administrator password for the EC2 instance"
-#   value       = component.ldap.password
-#   type        = string
-# }
+output "password" {
+  description = "This is the decrypted administrator password for the EC2 instance"
+  value       = component.ldap.password
+  type        = string
+}
 
 # output "eks_cluster_name" {
 #   description = "The name of the EKS cluster."
