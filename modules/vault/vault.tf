@@ -1,18 +1,3 @@
-terraform {
-  required_version = "1.14.2"
-  required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "2.10.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "2.22.0"
-    }
-  }
-}
-
-
 resource "helm_release" "vault_cluster" {
 
   name       = "vault"

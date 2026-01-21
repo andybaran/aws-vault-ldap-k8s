@@ -1,14 +1,3 @@
-terraform {
-  required_version = "1.14.2"
-  required_providers {  
-    kubernetes = {
-    source = "hashicorp/kubernetes"
-    version = "3.0.1"
-  }
-  }
-}
-
-
 resource "kubernetes_secret_v1" "vault_license" {
   data = {
     license = var.vault_license_key
