@@ -122,7 +122,7 @@ component "ldap" {
     random = provider.random.this
   }
 
-# }
+}
 
 # output "public-dns-address" {
 #   description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
