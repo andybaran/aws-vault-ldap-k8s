@@ -38,7 +38,7 @@ resource "aws_key_pair" "rdp-key" {
 // We also allow ingress to port 88, where the Kerberos KDC is running.
 resource "aws_security_group" "rdp_ingress" {
   name   = "${var.prefix}-rdp-ingress"
-  vpc_id = var.vpc_id
+  vpc_id = data.aws_vpc.default.id #var.vpc_id
 
   ingress {
     from_port   = 3389
