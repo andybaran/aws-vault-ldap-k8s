@@ -1,23 +1,23 @@
 
-# component "kube0" {
-#   source = "./modules/kube0"
-#   inputs = {
-#     region        = var.region
-#     customer_name = var.customer_name
-#     user_email    = var.user_email
-#     instance_type = var.instance_type
-#   }
-#   providers = {
-#     aws       = provider.aws.this
-#     random    = provider.random.this
-#     tls       = provider.tls.this
-#     null      = provider.null.this
-#     time      = provider.time.this
-#     cloudinit = provider.cloudinit.this
-#     vault     = provider.vault.this
-#   }
+component "kube0" {
+  source = "./modules/kube0"
+  inputs = {
+    region        = var.region
+    customer_name = var.customer_name
+    user_email    = var.user_email
+    instance_type = var.instance_type
+  }
+  providers = {
+    aws       = provider.aws.this
+    random    = provider.random.this
+    tls       = provider.tls.this
+    null      = provider.null.this
+    time      = provider.time.this
+    cloudinit = provider.cloudinit.this
+    vault     = provider.vault.this
+  }
 
-# }
+}
 
 # component "kube1" {
 #   source = "./modules/kube1"
@@ -82,28 +82,28 @@
 #     }
 # }
 
-# component "admin_vm" {
-#   source = "./modules/admin_vm"
-#   inputs = {
-#     region                = var.region
-#     vpc_id                = component.kube0.vpc_id
-#     subnet_id             = component.kube0.first_private_subnet_id
-#     instance_type         = var.instance_type
-#     allowlist_ip          = "66.190.197.168/32"
-#     environment           = var.customer_name
-#     eks_cluster_name      = component.kube0.eks_cluster_name
-#     vault_namespace       = component.vault_cluster.vault_namespace
-#     vault_service_name    = component.vault_cluster.vault_service_name
-#     shared_internal_sg_id = component.kube0.shared_internal_sg_id
-#     # vault_loadbalancer_hostname = component.vault_cluster.vault_loadbalancer_hostname
-#     # vault_ui_loadbalancer_hostname = component.vault_cluster.vault_ui_loadbalancer_hostname
-#   }
-#   providers = {
-#     aws = provider.aws.this
-#     tls = provider.tls.this
-#   }
+component "admin_vm" {
+  source = "./modules/admin_vm"
+  inputs = {
+    region                = var.region
+    vpc_id                = component.kube0.vpc_id
+    subnet_id             = component.kube0.first_private_subnet_id
+    instance_type         = var.instance_type
+    allowlist_ip          = "66.190.197.168/32"
+    environment           = var.customer_name
+    eks_cluster_name      = component.kube0.eks_cluster_name
+    vault_namespace       = component.vault_cluster.vault_namespace
+    vault_service_name    = component.vault_cluster.vault_service_name
+    shared_internal_sg_id = component.kube0.shared_internal_sg_id
+    # vault_loadbalancer_hostname = component.vault_cluster.vault_loadbalancer_hostname
+    # vault_ui_loadbalancer_hostname = component.vault_cluster.vault_ui_loadbalancer_hostname
+  }
+  providers = {
+    aws = provider.aws.this
+    tls = provider.tls.this
+  }
 
-# }
+}
 
 component "ldap" {
   source = "./modules/AWS_DC"
