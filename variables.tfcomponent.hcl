@@ -16,11 +16,6 @@ variable "instance_type" {
   default     = "t2.medium"
 }
 
-variable "vault_public_endpoint" {
-  type    = string
-  default = ""
-}
-
 variable "vault_root_namespace" {
   type    = string
   default = ""
@@ -51,9 +46,9 @@ variable "AWS_SESSION_TOKEN" {
   ephemeral   = true
 }
 
-# variable "vault_license_key" {
-#   description = "The Vault Enterprise license key."
-#   type        = string
-#   sensitive   = false
+variable "vault_license_key" {
+  description = "The Vault Enterprise license key."
+  type        = string
+  sensitive   = false
 
-# }
+}
