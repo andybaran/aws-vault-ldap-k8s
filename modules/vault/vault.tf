@@ -127,8 +127,8 @@ resource "helm_release" "vault_cluster" {
         value = "http"
     },
     {
-        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-healthcheck-port"
-        value = "8200"
+        name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-healthcheck-port"
+        value = "traffic-port"
     },
     {
         name = "ui.serviceType"
