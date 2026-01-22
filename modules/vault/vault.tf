@@ -119,6 +119,18 @@ resource "helm_release" "vault_cluster" {
         value = "tcp"
     },
     {
+        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-healthcheck-path"
+        value = "/v1/sys/health?standbyok=false&perfstandbyok=false"
+    },
+    {
+        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-healthcheck-protocol"
+        value = "http"
+    },
+    {
+        name = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-healthcheck-port"
+        value = "8200"
+    },
+    {
         name = "ui.serviceType"
         value = "LoadBalancer"
     },
