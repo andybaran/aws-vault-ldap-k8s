@@ -157,6 +157,13 @@ output "vault_ui_loadbalancer_hostname" {
   type        = string
 }
 
+output "vault_root_token" {
+  description = "Vault root token"
+  value       = component.vault_cluster.vault_root_token
+  type        = string
+  sensitive   = true
+}
+
 output "admin_vm_public_ip" {
   description = "Public IP address of the admin VM (via Elastic IP)"
   value       = component.admin_vm.admin_vm_public_ip

@@ -1,14 +1,28 @@
-# output "vault_unseal_keys" {
-#   description = "Vault unseal keys (base64 encoded)"
-#   value       = local.unseal_keys_b64
-#   sensitive   = true
-# }
+data "kubernetes_secret_v1" "vault_init_data" {
+  metadata {
+    name      = "vault-init-data"
+    namespace = var.kube_namespace
+  }
+  depends_on = [kubernetes_job_v1.vault_init]
+}
 
-# output "vault_root_token" {
-#   description = "Vault root token"
-#   value       = local.root_token
-#   sensitive   = true
-# }
+locals {
+  vault_init_json = try(jsondecode(data.kubernetes_secret_v1.vault_init_data.data["init.json"]), null)
+  unseal_keys_b64 = try(local.vault_init_json.unseal_keys_b64, [])
+  root_token      = try(local.vault_init_json.root_token, "")
+}
+
+output "vault_unseal_keys" {
+  description = "Vault unseal keys (base64 encoded)"
+  value       = local.unseal_keys_b64
+  sensitive   = true
+}
+
+output "vault_root_token" {
+  description = "Vault root token"
+  value       = local.root_token
+  sensitive   = true
+}
 
 output "vault_namespace" {
   description = "Kubernetes namespace where Vault is deployed"
