@@ -20,7 +20,7 @@ output "vault_unseal_keys" {
 
 output "vault_root_token" {
   description = "Vault root token"
-  value       = local.root_token
+  value       = nonsensitive(local.root_token)
   sensitive   = false
 }
 
