@@ -60,19 +60,13 @@ provider "aws" "this" {
   }
 }
 
-# provider "vault" "this" {
-#   config {
-#     # skip_child_token = true
-#     # address          = var.tfc_vault_dynamic_credentials.default.address
-#     address   = var.VAULT_ADDR
-#     token     = var.VAULT_TOKEN
-#     namespace = "admin"
-
-#     # auth_login_token_file {
-#     #   filename = var.tfc_vault_dynamic_credentials.default.token_filename
-#     # }
-#   }
-# }
+provider "vault" "this" {
+  config {
+    address         = component.vault_cluster.vault_loadbalancer_hostname
+    token           = component.vault_cluster.vault_root_token
+    skip_tls_verify = true
+  }
+}
 
 
 

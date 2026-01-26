@@ -109,6 +109,21 @@ component "ldap" {
 
 }
 
+component "vault_ldap_secrets" {
+  source = "./modules/vault_ldap_secrets"
+  inputs = {
+    ldap_url                = "ldap://${component.ldap.dc-priv-ip}"
+    ldap_binddn             = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
+    ldap_bindpass           = component.ldap.password
+    ldap_userdn             = "CN=Users,DC=mydomain,DC=local"
+    secrets_mount_path      = "ldap"
+    active_directory_domain = "mydomain.local"
+  }
+  providers = {
+    vault = provider.vault.this
+  }
+}
+
 output "public-dns-address" {
   description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
   value       = component.ldap.public-dns-address
@@ -162,6 +177,12 @@ output "vault_root_token" {
   value       = component.vault_cluster.vault_root_token
   type        = string
   sensitive   = true
+}
+
+output "vault_ldap_secrets_path" {
+  description = "Mount path for the Vault LDAP secrets engine"
+  value       = component.vault_ldap_secrets.ldap_secrets_mount_path
+  type        = string
 }
 
 output "admin_vm_public_ip" {
