@@ -14,3 +14,9 @@ variable "customer_name" {
   type = string
   description = "Customer name"
 }
+
+variable "eks_node_ami_release_version" {
+  type        = string
+  description = "EKS managed node group AMI release version"
+  default     = "1.34.2-20260128"
+}

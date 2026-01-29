@@ -55,5 +55,9 @@ variable "vault_license_key" {
   description = "The Vault Enterprise license key."
   type        = string
   sensitive   = false
+}
 
+variable "eks_node_ami_release_version" {
+  description = "EKS managed node group AMI release version"
+  type        = string
 }

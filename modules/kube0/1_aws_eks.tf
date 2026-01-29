@@ -44,10 +44,11 @@ module "eks" {
 
   eks_managed_node_groups = {
     nodes = {
-      instance_types = ["${var.instance_type}"]
-      min_size       = 1
-      max_size       = 3
-      desired_size   = 3
+      instance_types      = ["${var.instance_type}"]
+      ami_release_version = var.eks_node_ami_release_version
+      min_size            = 1
+      max_size            = 3
+      desired_size        = 3
     }
   }
 }

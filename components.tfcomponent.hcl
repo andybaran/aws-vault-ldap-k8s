@@ -2,10 +2,11 @@
 component "kube0" {
   source = "./modules/kube0"
   inputs = {
-    region        = var.region
-    customer_name = var.customer_name
-    user_email    = var.user_email
-    instance_type = var.instance_type
+    region                       = var.region
+    customer_name                = var.customer_name
+    user_email                   = var.user_email
+    instance_type                = var.instance_type
+    eks_node_ami_release_version = var.eks_node_ami_release_version
   }
   providers = {
     aws       = provider.aws.this
