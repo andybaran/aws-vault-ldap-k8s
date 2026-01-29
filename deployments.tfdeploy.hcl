@@ -15,6 +15,7 @@ deployment "development" {
     user_email            = "andy.baran@hashicorp.com"
     instance_type         = "m7i-flex.xlarge"
     vault_license_key     = store.varset.vault_license.stable.vault_license_key
+    eks_node_ami_release_version = "1.34.2-20260128"
 
     #### Auth credentials for AWS
     AWS_ACCESS_KEY_ID     = store.varset.aws_creds.AWS_ACCESS_KEY_ID
