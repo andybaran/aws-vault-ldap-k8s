@@ -13,7 +13,7 @@ deployment "development" {
     region                = "us-east-2"
     customer_name         = "fidelity"
     user_email            = "andy.baran@hashicorp.com"
-    instance_type         = "m7i-flex.xlarge"
+    instance_type         = "c5.xlarge"
     vault_license_key     = store.varset.vault_license.stable.vault_license_key
     eks_node_ami_release_version = "1.34.2-20260128"
 
@@ -22,5 +22,5 @@ deployment "development" {
     AWS_SECRET_ACCESS_KEY = store.varset.aws_creds.AWS_SECRET_ACCESS_KEY
     AWS_SESSION_TOKEN     = store.varset.aws_creds.AWS_SESSION_TOKEN
   }
-  destroy = true
+  #destroy = true
 }
