@@ -81,12 +81,12 @@ component "admin_vm" {
     vault_namespace       = component.vault_cluster.vault_namespace
     vault_service_name    = component.vault_cluster.vault_service_name
     shared_internal_sg_id = component.kube0.shared_internal_sg_id
-    # vault_loadbalancer_hostname = component.vault_cluster.vault_loadbalancer_hostname
-    # vault_ui_loadbalancer_hostname = component.vault_cluster.vault_ui_loadbalancer_hostname
+    prefix                = component.kube0.resources_prefix
+    key_name              = component.ldap.aws_keypair_name
+    ssh_private_key       = component.ldap.private-key
   }
   providers = {
     aws = provider.aws.this
-    tls = provider.tls.this
   }
 
 }
@@ -101,6 +101,7 @@ component "ldap" {
     subnet_id                       = component.kube0.first_public_subnet_id
     domain_controller_instance_type = var.instance_type
     shared_internal_sg_id           = component.kube0.shared_internal_sg_id
+    prefix                = component.kube0.resources_prefix
   }
   providers = {
     aws    = provider.aws.this

@@ -57,3 +57,9 @@ output "shared_internal_sg_id" {
   value       = aws_security_group.shared_internal.id
   sensitive   = false
 }
+
+output "resources_prefix" {
+  description = "The prefix used for naming resources in this deployment"
+  value       = local.resources_prefix
+  sensitive   = false
+}

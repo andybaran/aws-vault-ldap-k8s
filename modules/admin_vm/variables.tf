@@ -49,3 +49,19 @@ variable "shared_internal_sg_id" {
   description = "Security group ID for shared internal communication"
   type        = string
 }
+
+variable "prefix" {
+  description = "Prefix for naming resources"
+  type        = string
+}
+
+variable "key_name" {
+  description = "Name of the AWS key pair to use for the admin VM"
+  type        = string
+}
+
+variable "ssh_private_key" {
+  description = "Private SSH key for connecting to the admin VM"
+  type        = string
+  sensitive   = true
+}

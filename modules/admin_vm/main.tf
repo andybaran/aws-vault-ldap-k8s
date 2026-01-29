@@ -18,16 +18,6 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
-resource "tls_private_key" "admin_vm_key" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "admin_vm_key_pair" {
-  key_name   = "admin-vm-key-${var.environment}"
-  public_key = tls_private_key.admin_vm_key.public_key_openssh
-}
-
 resource "aws_security_group" "admin_vm_ssh" {
   name        = "admin-vm-ssh-${var.environment}"
   description = "Allow SSH access to admin VM"
@@ -104,7 +94,7 @@ locals {
 resource "aws_instance" "admin_vm" {
   ami                    = data.aws_ami.amazon_linux_2023.id
   instance_type          = var.instance_type
-  key_name               = aws_key_pair.admin_vm_key_pair.key_name
+  key_name               = var.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [
     aws_security_group.admin_vm_ssh.id,
@@ -144,5 +134,5 @@ resource "aws_eip" "admin_vm_eip" {
 }
 
 locals {
-  ssh_private_key = tls_private_key.admin_vm_key.private_key_pem
+  ssh_private_key = var.ssh_private_key
 }
