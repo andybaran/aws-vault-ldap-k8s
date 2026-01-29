@@ -20,7 +20,7 @@ resource "vault_ldap_secret_backend" "ad" {
   skip_static_role_import_rotation = true
 }
 
-# Dynamic role for generating temporary AD accounts
+# Dynamic role for generating time-bound AD accounts
 # Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/ldap_secret_backend_dynamic_role
 resource "vault_ldap_secret_backend_dynamic_role" "dynamicAD01" {
   mount     = vault_ldap_secret_backend.ad.path
@@ -35,7 +35,7 @@ objectClass: user
 cn: {{.Username}}
 sAMAccountName: {{.Username}}
 userPrincipalName: {{.Username}}@${var.active_directory_domain}
-unicodePwd: {{.PasswordBase64}}
+unicodePwd: {{.Password}}
 userAccountControl: 512
 LDIF
 
