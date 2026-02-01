@@ -22,9 +22,9 @@ resource "vault_ldap_secret_backend" "ad" {
 
 # Dynamic role for generating time-bound AD accounts
 # Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/ldap_secret_backend_dynamic_role
-resource "vault_ldap_secret_backend_dynamic_role" "dynamicAD01" {
+resource "vault_ldap_secret_backend_dynamic_role" "dynamicAD1" {
   mount     = vault_ldap_secret_backend.ad.path
-  role_name = "dynamicAD01"
+  role_name = "dynamicAD1"
 
   creation_ldif = <<-LDIF
 dn: CN={{.Username}},${var.ldap_userdn}
