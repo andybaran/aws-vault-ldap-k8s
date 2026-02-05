@@ -4,12 +4,6 @@ variable "kube_namespace" {
   default     = "default"
 }
 
-variable "vault_mount_credentials_path" {
-  description = "The Vault mount path for the credentials KV store."
-  type        = string
-  default     = ""
-}
-
 variable "ldap_mount_path" {
   description = "The Vault LDAP secrets engine mount path"
   type        = string

@@ -22,15 +22,9 @@ component "kube0" {
 component "kube1" {
   source = "./modules/kube1"
   inputs = {
-    customer_name                           = var.customer_name
-    user_email                              = var.user_email
-    instance_type                           = var.instance_type
-    vault_public_endpoint                   = var.vault_public_endpoint
     demo_id                                 = component.kube0.demo_id
     cluster_endpoint                        = component.kube0.cluster_endpoint
     kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
-    eks_cluster_name                        = component.kube0.eks_cluster_name
-    eks_cluster_id                          = component.kube0.eks_cluster_id
     vault_license_key                       = var.vault_license_key
   }
   providers = {
@@ -46,10 +40,9 @@ component "kube1" {
 component "kube2" {
   source = "./modules/kube2"
   inputs = {
-    kube_namespace               = component.kube1.kube_namespace
-    vault_mount_credentials_path = component.kube1.vault_mount_credentials_path
-    ldap_mount_path              = component.vault_ldap_secrets.ldap_secrets_mount_path
-    ldap_static_role_name        = component.vault_ldap_secrets.static_role_name
+    kube_namespace        = component.kube1.kube_namespace
+    ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
+    ldap_static_role_name = component.vault_ldap_secrets.static_role_name
   }
   providers = {
     kubernetes = provider.kubernetes.this
