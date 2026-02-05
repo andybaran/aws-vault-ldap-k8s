@@ -14,20 +14,20 @@ resource "helm_release" "vault_secrets_operator" {
     kubernetes_job_v1.vault_init
   ]
 
-  set {
-    name  = "controller.manager.image.tag"
-    value = "0.9.0"
-  }
-
-  set {
-    name  = "defaultVaultConnection.enabled"
-    value = "false"  # We'll create VaultConnection manually for more control
-  }
-
-  set {
-    name  = "defaultAuthMethod.enabled"
-    value = "false"  # We'll create VaultAuth manually for more control
-  }
+  set = [
+    {
+      name  = "controller.manager.image.tag"
+      value = "0.9.0"
+    },
+    {
+      name  = "defaultVaultConnection.enabled"
+      value = "false" # We'll create VaultConnection manually for more control
+    },
+    {
+      name  = "defaultAuthMethod.enabled"
+      value = "false" # We'll create VaultAuth manually for more control
+    }
+  ]
 }
 
 # VaultConnection - connects VSO to Vault
