@@ -50,3 +50,18 @@ variable "static_role_rotation_period" {
   type        = number
   default     = 86400
 }
+
+variable "kubernetes_host" {
+  description = "Kubernetes API server URL for Vault auth backend"
+  type        = string
+}
+
+variable "kubernetes_ca_cert" {
+  description = "Kubernetes cluster CA certificate for Vault auth backend"
+  type        = string
+}
+
+variable "kube_namespace" {
+  description = "Kubernetes namespace where VSO is deployed"
+  type        = string
+}
