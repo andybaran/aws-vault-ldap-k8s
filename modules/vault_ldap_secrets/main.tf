@@ -20,30 +20,34 @@ resource "vault_ldap_secret_backend" "ad" {
   skip_static_role_import_rotation = true
 }
 
-# Dynamic role for generating time-bound AD accounts
-# Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/ldap_secret_backend_dynamic_role
-# resource "vault_ldap_secret_backend_dynamic_role" "dynamicAD1" {
-#   mount     = vault_ldap_secret_backend.ad.path
-#   role_name = "dynamicAD1"
+# Static role for managing password rotation of an existing AD account
+# Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/ldap_secret_backend_static_role
+resource "vault_ldap_secret_backend_static_role" "service_account" {
+  mount     = vault_ldap_secret_backend.ad.path
+  role_name = var.static_role_name
+  username  = var.static_role_username
 
-#   creation_ldif = <<-LDIF
-# dn: CN={{.Username}},${var.ldap_userdn}
-# objectClass: top
-# objectClass: person
-# objectClass: organizationalPerson
-# objectClass: user
-# cn: {{.Username}}
-# sAMAccountName: {{.Username}}
-# userPrincipalName: {{.Username}}@${var.active_directory_domain}
-# unicodePwd: {{.Password}}
-# userAccountControl: 512
-# LDIF
+  # Rotate password every 24 hours (86400 seconds)
+  rotation_period = var.static_role_rotation_period
 
-#   deletion_ldif = <<-LDIF
-# dn: CN={{.Username}},${var.ldap_userdn}
-# changetype: delete
-# LDIF
+  # Skip initial rotation to avoid disrupting the service account immediately
+  skip_import_rotation = true
+}
 
-#   default_ttl = 3600
-#   max_ttl     = 86400
-# }
+# Policy for reading LDAP static credentials
+# Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/policy
+resource "vault_policy" "ldap_static_read" {
+  name = "${var.secrets_mount_path}-static-read"
+
+  policy = <<-EOT
+    # Allow reading static role credentials
+    path "${vault_ldap_secret_backend.ad.path}/static-cred/${vault_ldap_secret_backend_static_role.service_account.role_name}" {
+      capabilities = ["read"]
+    }
+
+    # Allow listing roles (optional, for discoverability)
+    path "${vault_ldap_secret_backend.ad.path}/static-role/*" {
+      capabilities = ["list"]
+    }
+  EOT
+}
