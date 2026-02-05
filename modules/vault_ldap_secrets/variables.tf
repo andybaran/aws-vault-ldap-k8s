@@ -32,3 +32,21 @@ variable "active_directory_domain" {
   type        = string
   default     = "mydomain.local"
 }
+
+variable "static_role_name" {
+  description = "Name of the static role for password rotation"
+  type        = string
+  default     = "demo-service-account"
+}
+
+variable "static_role_username" {
+  description = "AD username for the static role (without domain)"
+  type        = string
+  default     = "vault-demo"
+}
+
+variable "static_role_rotation_period" {
+  description = "Password rotation period in seconds (default: 24 hours)"
+  type        = number
+  default     = 86400
+}
