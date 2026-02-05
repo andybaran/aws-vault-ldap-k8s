@@ -222,7 +222,7 @@ output "ldap_app_service_name" {
 
 output "ldap_app_access_info" {
   description = "Access information for the LDAP credentials application"
-  value       = "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.kube2.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname."
+  value       = component.kube2.ldap_app_service_name != null ? "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.kube2.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname." : "LDAP app service not yet available"
   type        = string
 }
 
