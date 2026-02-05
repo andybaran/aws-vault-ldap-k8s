@@ -9,3 +9,15 @@ variable "vault_mount_credentials_path" {
   type        = string
   default     = ""
 }
+
+variable "ldap_mount_path" {
+  description = "The Vault LDAP secrets engine mount path"
+  type        = string
+  default     = "ldap"
+}
+
+variable "ldap_static_role_name" {
+  description = "The name of the LDAP static role in Vault"
+  type        = string
+  default     = "demo-service-account"
+}
