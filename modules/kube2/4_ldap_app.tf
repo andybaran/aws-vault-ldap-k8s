@@ -10,26 +10,34 @@ locals {
 # VaultStaticSecret CR for LDAP credentials
 # Reference: https://developer.hashicorp.com/vault/docs/platform/k8s/vso/api-reference#vaultstaticsecret
 resource "kubernetes_manifest" "vault_ldap_secret" {
-  manifest = yamldecode(<<-EOF
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultStaticSecret
-metadata:
-  name: ${local.ldap_app_name}
-  namespace: ${var.kube_namespace}
-spec:
-  type: ldap
-  mount: ${var.ldap_mount_path}
-  path: static-cred/${var.ldap_static_role_name}
-  destination:
-    name: ${local.ldap_app_secret_name}
-    create: true
-  refreshAfter: 30s
-  vaultAuthRef: default
-  rolloutRestartTargets:
-    - kind: Deployment
-      name: ${local.ldap_app_name}
-EOF
-  )
+  manifest = {
+    apiVersion = "secrets.hashicorp.com/v1beta1"
+    kind       = "VaultStaticSecret"
+    metadata = {
+      name      = local.ldap_app_name
+      namespace = var.kube_namespace
+    }
+    spec = {
+      type  = "ldap"
+      mount = var.ldap_mount_path
+      path  = "static-cred/${var.ldap_static_role_name}"
+      destination = {
+        name   = local.ldap_app_secret_name
+        create = true
+      }
+      refreshAfter = "30s"
+      vaultAuthRef = var.vso_vault_auth_name
+      rolloutRestartTargets = [
+        {
+          kind = "Deployment"
+          name = local.ldap_app_name
+        }
+      ]
+    }
+  }
+
+  # Bypass object validation since CRD may not be installed during plan
+  computed_fields = ["spec"]
 }
 
 # Deployment for LDAP credentials display application
