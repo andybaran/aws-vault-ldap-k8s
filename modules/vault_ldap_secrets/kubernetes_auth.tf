@@ -11,7 +11,7 @@ resource "vault_auth_backend" "kubernetes" {
 resource "vault_kubernetes_auth_backend_config" "config" {
   backend            = vault_auth_backend.kubernetes.path
   kubernetes_host    = var.kubernetes_host
-  kubernetes_ca_cert = var.kubernetes_ca_cert
+  kubernetes_ca_cert = base64decode(var.kubernetes_ca_cert)
   
   # Disable local CA JWT verification - let Kubernetes handle it
   disable_local_ca_jwt = false
