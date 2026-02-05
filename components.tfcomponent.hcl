@@ -42,18 +42,20 @@ component "kube1" {
 
 }
 
-# component "kube2" {
-#     source = "./modules/kube2"
-#     inputs = {
-#         kube_namespace = component.kube1.kube_namespace
-#         vault_mount_credentials_path = component.kube1.vault_mount_credentials_path
-#     }
-#     providers = {
-#         kubernetes = provider.kubernetes.this
-#         time = provider.time.this
-#     }
 
-#     }
+component "kube2" {
+  source = "./modules/kube2"
+  inputs = {
+    kube_namespace               = component.kube1.kube_namespace
+    vault_mount_credentials_path = component.kube1.vault_mount_credentials_path
+    ldap_mount_path              = component.vault_ldap_secrets.ldap_secrets_mount_path
+    ldap_static_role_name        = component.vault_ldap_secrets.static_role_name
+  }
+  providers = {
+    kubernetes = provider.kubernetes.this
+    time       = provider.time.this
+  }
+}
 
 component "vault_cluster" {
   source = "./modules/vault"
@@ -216,6 +218,18 @@ output "admin_vm_ssh_key" {
   value       = component.admin_vm.ssh_private_key
   type        = string
   sensitive   = false
+}
+
+output "ldap_app_service_name" {
+  description = "Kubernetes service name for the LDAP credentials application"
+  value       = component.kube2.ldap_app_service_name
+  type        = string
+}
+
+output "ldap_app_access_info" {
+  description = "Access information for the LDAP credentials application"
+  value       = "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.kube2.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname."
+  type        = string
 }
 
 # output "vault_root_token" {
