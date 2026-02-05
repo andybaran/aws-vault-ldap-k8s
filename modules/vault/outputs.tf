@@ -65,3 +65,8 @@ output "vault_ui_loadbalancer_hostname" {
   description = "Internal LoadBalancer hostname for Vault UI"
   value       = "http://${try(data.kubernetes_service_v1.vault_ui.status[0].load_balancer[0].ingress[0].hostname, "pending")}:8200"
 }
+
+output "vso_vault_auth_name" {
+  description = "The name of the VaultAuth resource for VSO"
+  value       = kubernetes_manifest.vault_auth.manifest.metadata.name
+}

@@ -15,3 +15,9 @@ variable "ldap_static_role_name" {
   type        = string
   default     = "demo-service-account"
 }
+
+variable "vso_vault_auth_name" {
+  description = "The name of the VaultAuth resource created by VSO"
+  type        = string
+  default     = "default"
+}
