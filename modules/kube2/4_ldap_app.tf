@@ -7,26 +7,25 @@ locals {
   ldap_app_image         = "ghcr.io/andybaran/vault-ldap-demo:v1.0.0"
 }
 
-# VaultStaticSecret CR for LDAP credentials
-# Reference: https://developer.hashicorp.com/vault/docs/platform/k8s/vso/api-reference#vaultstaticsecret
+# VaultDynamicSecret CR for LDAP credentials
+# Reference: https://developer.hashicorp.com/vault/docs/platform/k8s/vso/api-reference#vaultdynamicsecret
 resource "kubernetes_manifest" "vault_ldap_secret" {
   manifest = {
     apiVersion = "secrets.hashicorp.com/v1beta1"
-    kind       = "VaultStaticSecret"
+    kind       = "VaultDynamicSecret"
     metadata = {
       name      = local.ldap_app_name
       namespace = var.kube_namespace
     }
     spec = {
-      type  = "ldap"
       mount = var.ldap_mount_path
       path  = "static-cred/${var.ldap_static_role_name}"
       destination = {
         name   = local.ldap_app_secret_name
         create = true
       }
-      refreshAfter = "30s"
-      vaultAuthRef = var.vso_vault_auth_name
+      renewalPercent = 67
+      vaultAuthRef   = var.vso_vault_auth_name
       rolloutRestartTargets = [
         {
           kind = "Deployment"
