@@ -79,8 +79,9 @@ resource "kubernetes_deployment_v1" "ldap_app" {
 
       spec {
         container {
-          name  = local.ldap_app_name
-          image = local.ldap_app_image
+          name              = local.ldap_app_name
+          image             = local.ldap_app_image
+          image_pull_policy = "Always"
 
           port {
             container_port = 8080
