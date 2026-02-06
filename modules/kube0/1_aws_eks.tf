@@ -20,22 +20,9 @@ module "eks" {
   vpc_id                                   = module.vpc.vpc_id
   subnet_ids                               = module.vpc.private_subnets
 
-  # Grant admin access to additional IAM principals (e.g., HCP Terraform execution role)
-  # Use issuer_arn to get the IAM role ARN, not the assumed role session ARN
-  access_entries = {
-    hcp_terraform = {
-      principal_arn = data.aws_iam_session_context.current.issuer_arn
-      type          = "STANDARD"
-      policy_associations = {
-        admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
-        }
-      }
-    }
-  }
+  # Note: enable_cluster_creator_admin_permissions = true already grants admin
+  # access to the IAM role that creates the cluster. No need for explicit
+  # access_entries for the same role - that would cause a duplicate conflict.
 
   kms_key_administrators = [
     local.extra_doormat_role,
