@@ -7,6 +7,21 @@ locals {
   ldap_app_image         = "ghcr.io/andybaran/vault-ldap-demo:v1.0.0"
 }
 
+# Import blocks for Kubernetes resources
+# These are idempotent in Terraform 1.5+ and can remain permanently:
+# - If the resource exists in K8s but not in state: imports it
+# - If the resource is already in state: no-op (ignored)
+# - If the resource doesn't exist: Terraform creates it normally
+import {
+  to = kubernetes_deployment_v1.ldap_app
+  id = "${var.kube_namespace}/${local.ldap_app_name}"
+}
+
+import {
+  to = kubernetes_service_v1.ldap_app
+  id = "${var.kube_namespace}/${local.ldap_app_name}"
+}
+
 # VaultDynamicSecret CR for LDAP credentials
 # Reference: https://developer.hashicorp.com/vault/docs/platform/k8s/vso/api-reference#vaultdynamicsecret
 resource "kubernetes_manifest" "vault_ldap_secret" {
