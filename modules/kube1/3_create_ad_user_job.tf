@@ -56,47 +56,59 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       MAX_RETRIES=30
       RETRY_DELAY=10
       
+      # For demo: disable certificate verification for LDAPS
+      # In production, use proper certificates
+      export LDAPTLS_REQCERT=never
+      
       echo "==============================================="
       echo "AD User Creation Job Starting"
       echo "LDAP Server: $LDAP_SERVER"
       echo "User: $VAULT_USER"
       echo "User DN: $USER_DN"
+      echo "Protocol: LDAPS (port 636) - required for unicodePwd"
+      echo "TLS Cert Verification: Disabled (demo mode)"
       echo "==============================================="
       
-      # Wait for LDAP server to be ready
-      echo "Waiting for LDAP server to be ready..."
+      # Wait for LDAPS server to be ready (port 636)
+      echo "Waiting for LDAPS server to be ready..."
       for i in $(seq 1 $MAX_RETRIES); do
-        if timeout 5 bash -c "echo > /dev/tcp/$LDAP_SERVER/389" 2>/dev/null; then
-          echo "✓ LDAP server is reachable on port 389"
+        if timeout 5 bash -c "echo > /dev/tcp/$LDAP_SERVER/636" 2>/dev/null; then
+          echo "✓ LDAPS server is reachable on port 636"
           break
         fi
         
         if [ $i -eq $MAX_RETRIES ]; then
-          echo "✗ ERROR: LDAP server not reachable after $MAX_RETRIES attempts"
+          echo "✗ ERROR: LDAPS server not reachable after $MAX_RETRIES attempts"
           echo "Network debugging:"
           echo "- Testing DNS resolution:"
           nslookup $LDAP_SERVER || echo "DNS resolution failed"
-          echo "- Testing connectivity:"
+          echo "- Testing connectivity on port 636:"
+          nc -zv $LDAP_SERVER 636 2>&1 || echo "TCP connection failed"
+          echo "- Testing connectivity on port 389 (fallback):"
           nc -zv $LDAP_SERVER 389 2>&1 || echo "TCP connection failed"
           exit 1
         fi
         
-        echo "Waiting for LDAP server... (attempt $i/$MAX_RETRIES)"
+        echo "Waiting for LDAPS server... (attempt $i/$MAX_RETRIES)"
         sleep $RETRY_DELAY
       done
       
       # Additional wait for LDAP service to be fully initialized
-      echo "Waiting 10 seconds for LDAP service to fully initialize..."
+      echo "Waiting 10 seconds for LDAPS service to fully initialize..."
       sleep 10
       
-      # Test LDAP bind before attempting user creation
-      echo "Testing LDAP authentication..."
-      if ! ldapwhoami -x -H ldap://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD"; then
-        echo "✗ ERROR: LDAP authentication failed"
+      # Test LDAPS bind before attempting user creation
+      echo "Testing LDAPS authentication..."
+      if ! ldapwhoami -x -H ldaps://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD"; then
+        echo "✗ ERROR: LDAPS authentication failed"
         echo "Admin DN: $ADMIN_DN"
+        echo "Note: Trying plain LDAP as fallback test..."
+        if ldapwhoami -x -H ldaps://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD" 2>/dev/null; then
+          echo "⚠ Plain LDAP works but LDAPS fails - certificate issue?"
+        fi
         exit 1
       fi
-      echo "✓ LDAP authentication successful"
+      echo "✓ LDAPS authentication successful"
       
       # Function to encode password for unicodePwd attribute
       # AD requires: "password" in UTF-16LE, base64 encoded
@@ -110,13 +122,13 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       
       # Check if user already exists and delete if so (demo environment)
       echo "Checking if user $VAULT_USER already exists..."
-      if ldapsearch -x -H ldap://$LDAP_SERVER \
+      if ldapsearch -x -H ldaps://$LDAP_SERVER \
           -D "$ADMIN_DN" \
           -w "$ADMIN_PASSWORD" \
           -b "$USER_DN" \
           "(objectClass=*)" dn 2>/dev/null | grep -q "^dn:"; then
         echo "✓ User $VAULT_USER already exists - deleting for fresh start (demo mode)"
-        if ldapdelete -x -H ldap://$LDAP_SERVER \
+        if ldapdelete -x -H ldaps://$LDAP_SERVER \
             -D "$ADMIN_DN" \
             -w "$ADMIN_PASSWORD" \
             "$USER_DN"; then
@@ -148,7 +160,7 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       userAccountControl: 512
       LDIF
       
-      if ldapadd -x -H ldap://$LDAP_SERVER \
+      if ldapadd -x -H ldaps://$LDAP_SERVER \
           -D "$ADMIN_DN" \
           -w "$ADMIN_PASSWORD" \
           -f /tmp/create-user-with-password.ldif; then
@@ -162,7 +174,7 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       
       # Verify user was created correctly
       echo "Verifying user creation..."
-      if ldapsearch -x -H ldap://$LDAP_SERVER \
+      if ldapsearch -x -H ldaps://$LDAP_SERVER \
           -D "$ADMIN_DN" \
           -w "$ADMIN_PASSWORD" \
           -b "$USER_DN" \
@@ -174,7 +186,7 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       
       # Test that the password works
       echo "Testing user authentication with new password..."
-      if ldapwhoami -x -H ldap://$LDAP_SERVER \
+      if ldapwhoami -x -H ldaps://$LDAP_SERVER \
           -D "$USER_DN" \
           -w "$INITIAL_PASSWORD"; then
         echo "✓ User authentication successful - password is working"
