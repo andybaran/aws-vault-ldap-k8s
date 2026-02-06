@@ -30,8 +30,9 @@ resource "vault_ldap_secret_backend_static_role" "service_account" {
   # Rotate password every 24 hours (86400 seconds)
   rotation_period = var.static_role_rotation_period
 
-  # Skip initial rotation to avoid disrupting the service account immediately
-  skip_import_rotation = true
+  # Allow initial rotation to import the password from AD
+  # This is required for Vault to manage and return the credentials
+  skip_import_rotation = false
 }
 
 # Policy for reading LDAP static credentials
