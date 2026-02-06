@@ -56,11 +56,6 @@ variable "kubernetes_host" {
   type        = string
 }
 
-variable "kubernetes_ca_cert" {
-  description = "Kubernetes cluster CA certificate for Vault auth backend"
-  type        = string
-}
-
 variable "kube_namespace" {
   description = "Kubernetes namespace where VSO is deployed"
   type        = string
