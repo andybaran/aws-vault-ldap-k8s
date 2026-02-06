@@ -42,7 +42,7 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       userPrincipalName: ${local.vault_demo_username}@mydomain.local
       displayName: Vault Demo Service Account
       description: Service account managed by HashiCorp Vault for password rotation demo
-      userAccountControl: 512
+      userAccountControl: 514
     EOT
 
     "set-password.sh" = <<-EOT
@@ -107,14 +107,17 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
           "(objectClass=*)" dn 2>/dev/null | grep -q "^dn:"; then
         echo "✓ User $VAULT_USER already exists, skipping creation"
       else
-        echo "Creating user $VAULT_USER..."
+        echo "Creating user $VAULT_USER (disabled state)..."
+        echo "Note: userAccountControl=514 (disabled) - AD requires password before enabling"
         if ldapadd -x -H ldap://$LDAP_SERVER \
             -D "$ADMIN_DN" \
             -w "$ADMIN_PASSWORD" \
             -f /ldif/create-user.ldif; then
-          echo "✓ User created successfully"
+          echo "✓ User created successfully (disabled)"
         else
           echo "✗ Failed to create user"
+          echo "Debugging: Showing LDIF content:"
+          cat /ldif/create-user.ldif
           exit 1
         fi
       fi
@@ -132,8 +135,8 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
         exit 1
       fi
       
-      # Enable the account (userAccountControl: 512 = normal account, enabled)
-      echo "Enabling the account..."
+      # Enable the account (change userAccountControl from 514 to 512)
+      echo "Enabling the account (userAccountControl: 514 → 512)..."
       if cat <<EOF | ldapmodify -x -H ldap://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD"
       dn: $USER_DN
       changetype: modify
