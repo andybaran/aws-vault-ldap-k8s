@@ -98,55 +98,65 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
       fi
       echo "✓ LDAP authentication successful"
       
-      # Check if user already exists
+      # Function to encode password for unicodePwd attribute
+      # AD requires: "password" in UTF-16LE, base64 encoded
+      encode_password() {
+        local pwd="$1"
+        # Add quotes around password and encode to UTF-16LE, then base64
+        echo -n "\"$pwd\"" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0
+      }
+      
+      ENCODED_PASSWORD=$(encode_password "$INITIAL_PASSWORD")
+      
+      # Check if user already exists and delete if so (demo environment)
       echo "Checking if user $VAULT_USER already exists..."
       if ldapsearch -x -H ldap://$LDAP_SERVER \
           -D "$ADMIN_DN" \
           -w "$ADMIN_PASSWORD" \
           -b "$USER_DN" \
           "(objectClass=*)" dn 2>/dev/null | grep -q "^dn:"; then
-        echo "✓ User $VAULT_USER already exists, skipping creation"
-      else
-        echo "Creating user $VAULT_USER (disabled state)..."
-        echo "Note: userAccountControl=514 (disabled) - AD requires password before enabling"
-        if ldapadd -x -H ldap://$LDAP_SERVER \
+        echo "✓ User $VAULT_USER already exists - deleting for fresh start (demo mode)"
+        if ldapdelete -x -H ldap://$LDAP_SERVER \
             -D "$ADMIN_DN" \
             -w "$ADMIN_PASSWORD" \
-            -f /ldif/create-user.ldif; then
-          echo "✓ User created successfully (disabled)"
+            "$USER_DN"; then
+          echo "✓ Existing user deleted successfully"
         else
-          echo "✗ Failed to create user"
-          echo "Debugging: Showing LDIF content:"
-          cat /ldif/create-user.ldif
-          exit 1
+          echo "⚠ Warning: Failed to delete existing user, will try to create anyway"
         fi
+      else
+        echo "✓ User $VAULT_USER does not exist, proceeding with creation"
       fi
       
-      # Set the password
-      echo "Setting initial password..."
-      if ldappasswd -x -H ldap://$LDAP_SERVER \
+      # Create user with password using unicodePwd (AD-specific method)
+      echo "Creating user $VAULT_USER with password..."
+      echo "Note: Using unicodePwd attribute (AD-specific, not standard LDAP)"
+      
+      # Create LDIF with unicodePwd
+      cat > /tmp/create-user-with-password.ldif <<LDIF
+      dn: $USER_DN
+      objectClass: top
+      objectClass: person
+      objectClass: organizationalPerson
+      objectClass: user
+      cn: $VAULT_USER
+      sAMAccountName: $VAULT_USER
+      userPrincipalName: $VAULT_USER@mydomain.local
+      displayName: Vault Demo Service Account
+      description: Service account managed by HashiCorp Vault for password rotation demo
+      unicodePwd:: $ENCODED_PASSWORD
+      userAccountControl: 512
+      LDIF
+      
+      if ldapadd -x -H ldap://$LDAP_SERVER \
           -D "$ADMIN_DN" \
           -w "$ADMIN_PASSWORD" \
-          -s "$INITIAL_PASSWORD" \
-          "$USER_DN"; then
-        echo "✓ Password set successfully"
+          -f /tmp/create-user-with-password.ldif; then
+        echo "✓ User created successfully with password"
       else
-        echo "✗ Failed to set password"
-        exit 1
-      fi
-      
-      # Enable the account (change userAccountControl from 514 to 512)
-      echo "Enabling the account (userAccountControl: 514 → 512)..."
-      if cat <<EOF | ldapmodify -x -H ldap://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD"
-      dn: $USER_DN
-      changetype: modify
-      replace: userAccountControl
-      userAccountControl: 512
-      EOF
-      then
-        echo "✓ Account enabled successfully"
-      else
-        echo "✗ Failed to enable account"
+        echo "✗ Failed to create user with password"
+        echo "Debugging: Showing LDIF content (password redacted):"
+        sed 's/unicodePwd::.*/unicodePwd:: <REDACTED>/' /tmp/create-user-with-password.ldif
         exit 1
       fi
       
@@ -160,6 +170,16 @@ resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
         echo "✓ User verification successful"
       else
         echo "⚠ Warning: User verification failed, but continuing"
+      fi
+      
+      # Test that the password works
+      echo "Testing user authentication with new password..."
+      if ldapwhoami -x -H ldap://$LDAP_SERVER \
+          -D "$USER_DN" \
+          -w "$INITIAL_PASSWORD"; then
+        echo "✓ User authentication successful - password is working"
+      else
+        echo "⚠ Warning: User authentication test failed"
       fi
       
       echo "==============================================="
