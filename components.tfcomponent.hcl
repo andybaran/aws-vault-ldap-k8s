@@ -117,7 +117,6 @@ component "vault_ldap_secrets" {
     secrets_mount_path      = "ldap"
     active_directory_domain = "mydomain.local"
     kubernetes_host         = component.kube0.cluster_endpoint
-    kubernetes_ca_cert      = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace          = component.kube1.kube_namespace
   }
   providers = {

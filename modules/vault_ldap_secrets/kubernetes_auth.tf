@@ -9,12 +9,12 @@ resource "vault_auth_backend" "kubernetes" {
 # Kubernetes auth backend configuration
 # Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/kubernetes_auth_backend_config
 resource "vault_kubernetes_auth_backend_config" "config" {
-  backend            = vault_auth_backend.kubernetes.path
-  kubernetes_host    = var.kubernetes_host
-  kubernetes_ca_cert = var.kubernetes_ca_cert
+  backend         = vault_auth_backend.kubernetes.path
+  kubernetes_host = var.kubernetes_host
   
-  # Disable local CA JWT verification - let Kubernetes handle it
-  disable_local_ca_jwt = false
+  # Use service account token authentication instead of CA cert validation
+  # This is more reliable in EKS/cloud environments and avoids CA cert format issues
+  disable_local_ca_jwt = true
 }
 
 # Kubernetes auth backend role for VSO
