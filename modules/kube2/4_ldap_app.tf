@@ -152,7 +152,7 @@ resource "kubernetes_deployment_v1" "ldap_app" {
             value_from {
               secret_key_ref {
                 name = local.ldap_app_secret_name
-                key  = "distinguished_names"
+                key  = "dn"
               }
             }
           }
