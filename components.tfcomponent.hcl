@@ -121,6 +121,8 @@ component "vault_ldap_secrets" {
     kubernetes_host         = component.kube0.cluster_endpoint
     kubernetes_ca_cert      = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace          = component.kube1.kube_namespace
+    # This dependency ensures the AD user creation job completes before Vault configures the LDAP secrets engine
+    ad_user_job_completed   = component.kube1.ad_user_job_status
   }
   providers = {
     vault = provider.vault.this

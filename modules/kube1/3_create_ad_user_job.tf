@@ -89,6 +89,16 @@ resource "kubernetes_job_v1" "create_ad_user" {
     namespace = kubernetes_namespace_v1.simple_app.metadata[0].name
   }
 
+  # Wait for the job to complete before Terraform marks it as created
+  # This ensures vault_ldap_secrets component waits for the user to exist
+  wait_for_completion = true
+  
+  # Timeout for job completion (default would be too short)
+  timeouts {
+    create = "5m"
+    update = "5m"
+  }
+
   spec {
     # Keep completed job for 1 hour for debugging
     ttl_seconds_after_finished = 3600

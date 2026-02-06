@@ -65,3 +65,8 @@ variable "kube_namespace" {
   description = "Kubernetes namespace where VSO is deployed"
   type        = string
 }
+
+variable "ad_user_job_completed" {
+  description = "Dependency marker to ensure AD user creation job completes before Vault LDAP secrets engine configuration"
+  type        = string
+}
