@@ -7,6 +7,20 @@ locals {
   ldap_app_image         = "ghcr.io/andybaran/vault-ldap-demo:v1.0.0"
 }
 
+# Import existing deployment if it exists outside of Terraform state
+# This handles cases where state and reality are out of sync
+# The import block can be removed after successful import
+import {
+  to = kubernetes_deployment_v1.ldap_app
+  id = "${var.kube_namespace}/${local.ldap_app_name}"
+}
+
+# Import existing service if it exists outside of Terraform state
+import {
+  to = kubernetes_service_v1.ldap_app
+  id = "${var.kube_namespace}/${local.ldap_app_name}"
+}
+
 # VaultDynamicSecret CR for LDAP credentials
 # Reference: https://developer.hashicorp.com/vault/docs/platform/k8s/vso/api-reference#vaultdynamicsecret
 resource "kubernetes_manifest" "vault_ldap_secret" {
