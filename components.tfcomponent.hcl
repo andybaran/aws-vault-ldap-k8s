@@ -26,6 +26,8 @@ component "kube1" {
     cluster_endpoint                        = component.kube0.cluster_endpoint
     kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
     vault_license_key                       = var.vault_license_key
+    ldap_dc_private_ip                      = component.ldap.dc-priv-ip
+    ldap_admin_password                     = component.ldap.password
   }
   providers = {
     aws        = provider.aws.this
@@ -119,6 +121,8 @@ component "vault_ldap_secrets" {
     kubernetes_host         = component.kube0.cluster_endpoint
     kubernetes_ca_cert      = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace          = component.kube1.kube_namespace
+    # This dependency ensures the AD user creation job completes before Vault configures the LDAP secrets engine
+    ad_user_job_completed   = component.kube1.ad_user_job_status
   }
   providers = {
     vault = provider.vault.this
