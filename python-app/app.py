@@ -11,6 +11,7 @@ from flask import Flask, render_template_string
 app = Flask(__name__)
 
 # HTML template for displaying credentials
+# Styled with HashiCorp design system (Helios) principles
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -19,171 +20,375 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vault LDAP Credentials Demo</title>
     <style>
-        * {
+        /* HDS-inspired design tokens */
+        :root {
+            /* Colors - HashiCorp brand palette */
+            --color-vault: #FFD814;
+            --color-black: #000000;
+            --color-surface-primary: #FFFFFF;
+            --color-surface-secondary: #F7F8FA;
+            --color-surface-tertiary: #EBEEF2;
+            --color-surface-strong: #000000;
+            --color-foreground-primary: #1F2D3D;
+            --color-foreground-strong: #000000;
+            --color-foreground-faint: #5F6F84;
+            --color-foreground-success: #15834D;
+            --color-border-primary: #D9DEE5;
+            --color-border-strong: #A7B1BF;
+            --color-highlight: #5B3DE0;
+            --color-success: #15834D;
+            --color-success-surface: #DDF4E8;
+            
+            /* Typography - HDS font stack */
+            --font-family-text: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            --font-family-code: "SF Mono", Monaco, "Cascadia Mono", "Roboto Mono", Consolas, "Courier New", monospace;
+            
+            /* Typography scale */
+            --font-size-display-500: 30px;
+            --font-size-display-400: 24px;
+            --font-size-display-300: 20px;
+            --font-size-body-300: 16px;
+            --font-size-body-200: 14px;
+            --font-size-body-100: 12px;
+            --line-height-display: 1.2;
+            --line-height-body: 1.5;
+            
+            /* Font weights */
+            --font-weight-regular: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+            
+            /* Spacing - HDS spacing scale */
+            --spacing-050: 2px;
+            --spacing-100: 4px;
+            --spacing-200: 8px;
+            --spacing-300: 12px;
+            --spacing-400: 16px;
+            --spacing-500: 24px;
+            --spacing-600: 32px;
+            --spacing-700: 40px;
+            --spacing-800: 48px;
+            
+            /* Border radius */
+            --radius-small: 4px;
+            --radius-medium: 8px;
+            --radius-large: 12px;
+            
+            /* Elevation */
+            --elevation-mid: 0 8px 16px rgba(31, 45, 61, 0.12);
+            --elevation-high: 0 12px 24px rgba(31, 45, 61, 0.16);
+        }
+        
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-family-text);
+            background-color: var(--color-surface-strong);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--spacing-500);
+            color: var(--color-foreground-primary);
         }
+        
         .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            background: var(--color-surface-primary);
+            border-radius: var(--radius-large);
+            box-shadow: var(--elevation-high);
+            max-width: 900px;
             width: 100%;
-            padding: 40px;
+            overflow: hidden;
         }
-        .header {
+        
+        /* Header section with Vault branding */
+        .brand-header {
+            background: var(--color-black);
+            color: var(--color-surface-primary);
+            padding: var(--spacing-600) var(--spacing-700);
             text-align: center;
-            margin-bottom: 40px;
+            border-bottom: 3px solid var(--color-vault);
         }
-        .header h1 {
-            color: #2d3748;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+        
+        .brand-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-400);
+            margin-bottom: var(--spacing-400);
         }
-        .header p {
-            color: #718096;
-            font-size: 1.1em;
+        
+        .vault-logo {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
         }
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
+        
+        .brand-header h1 {
+            font-size: var(--font-size-display-400);
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--line-height-display);
+            margin: 0;
+            color: var(--color-surface-primary);
         }
-        .logo svg {
-            width: 120px;
-            height: 120px;
+        
+        .brand-header p {
+            font-size: var(--font-size-body-300);
+            color: var(--color-surface-tertiary);
+            margin: 0;
+            line-height: var(--line-height-body);
         }
-        .credential-section {
-            background: #f7fafc;
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 20px;
-            border-left: 4px solid #667eea;
-        }
-        .credential-label {
-            color: #4a5568;
-            font-size: 0.875em;
-            font-weight: 600;
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-100);
+            background: var(--color-success);
+            color: var(--color-surface-primary);
+            padding: var(--spacing-100) var(--spacing-300);
+            border-radius: var(--radius-large);
+            font-size: var(--font-size-body-100);
+            font-weight: var(--font-weight-semibold);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            margin-top: var(--spacing-300);
         }
+        
+        .status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-surface-primary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Main content area */
+        .content {
+            padding: var(--spacing-700);
+        }
+        
+        .section-title {
+            font-size: var(--font-size-display-300);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-foreground-strong);
+            margin-bottom: var(--spacing-500);
+            padding-bottom: var(--spacing-300);
+            border-bottom: 2px solid var(--color-surface-tertiary);
+        }
+        
+        .credentials-grid {
+            display: grid;
+            gap: var(--spacing-400);
+            margin-bottom: var(--spacing-600);
+        }
+        
+        .credential-card {
+            background: var(--color-surface-secondary);
+            border: 1px solid var(--color-border-primary);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-500);
+            transition: all 0.2s ease;
+        }
+        
+        .credential-card:hover {
+            border-color: var(--color-border-strong);
+            box-shadow: var(--elevation-mid);
+        }
+        
+        .credential-label {
+            font-size: var(--font-size-body-100);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-foreground-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-200);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-200);
+        }
+        
+        .credential-label::before {
+            content: '';
+            width: 4px;
+            height: 12px;
+            background: var(--color-vault);
+            border-radius: 2px;
+        }
+        
         .credential-value {
-            color: #2d3748;
-            font-size: 1.25em;
-            font-family: 'Courier New', monospace;
-            background: white;
-            padding: 12px;
-            border-radius: 4px;
+            font-family: var(--font-family-code);
+            font-size: var(--font-size-body-200);
+            color: var(--color-foreground-strong);
+            background: var(--color-surface-primary);
+            padding: var(--spacing-300);
+            border-radius: var(--radius-small);
+            border: 1px solid var(--color-border-primary);
             word-break: break-all;
-        }
-        .info-box {
-            background: #ebf8ff;
-            border-left: 4px solid #4299e1;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 24px;
-        }
-        .info-box p {
-            color: #2c5282;
-            font-size: 0.95em;
             line-height: 1.6;
         }
-        .footer {
-            text-align: center;
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #e2e8f0;
+        
+        /* Info section */
+        .info-section {
+            background: var(--color-success-surface);
+            border: 1px solid rgba(21, 131, 77, 0.3);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-500);
+            margin-bottom: var(--spacing-500);
         }
-        .footer a {
-            color: #667eea;
+        
+        .info-section-title {
+            font-size: var(--font-size-body-300);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-success);
+            margin-bottom: var(--spacing-300);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-200);
+        }
+        
+        .info-section-title::before {
+            content: '🔐';
+            font-size: 20px;
+        }
+        
+        .info-section p {
+            font-size: var(--font-size-body-200);
+            color: var(--color-foreground-primary);
+            line-height: var(--line-height-body);
+            margin: 0;
+        }
+        
+        /* Metadata section */
+        .metadata {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--spacing-500);
+            background: var(--color-surface-secondary);
+            border-top: 1px solid var(--color-border-primary);
+            font-size: var(--font-size-body-200);
+            color: var(--color-foreground-faint);
+        }
+        
+        .metadata strong {
+            color: var(--color-foreground-strong);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .powered-by {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-200);
+        }
+        
+        .powered-by a {
+            color: var(--color-highlight);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: var(--font-weight-medium);
+            transition: color 0.2s ease;
         }
-        .footer a:hover {
+        
+        .powered-by a:hover {
+            color: var(--color-foreground-strong);
             text-decoration: underline;
         }
-        .timestamp {
-            color: #718096;
-            font-size: 0.875em;
-            margin-top: 8px;
-        }
-        .status-badge {
-            display: inline-block;
-            background: #48bb78;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.875em;
-            font-weight: 600;
-            margin-left: 8px;
+        
+        @media (max-width: 640px) {
+            body {
+                padding: var(--spacing-300);
+            }
+            
+            .brand-header {
+                padding: var(--spacing-500);
+            }
+            
+            .brand-header h1 {
+                font-size: var(--font-size-display-300);
+            }
+            
+            .content {
+                padding: var(--spacing-500);
+            }
+            
+            .metadata {
+                flex-direction: column;
+                gap: var(--spacing-300);
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-                <rect fill="#000000" width="256" height="256" rx="24"/>
-                <path fill="#FFFFFF" d="M128 40l96 55.5v111L128 262l-96-55.5v-111L128 40z"/>
-                <path fill="#FFD814" d="M128 80l-64 37v74l64 37 64-37v-74l-64-37z"/>
-                <path fill="#000000" d="M128 100l-48 28v56l48 28 48-28v-56l-48-28z"/>
-            </svg>
+        <!-- Header with Vault branding -->
+        <div class="brand-header">
+            <div class="brand-header-content">
+                <svg class="vault-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#FFD814" d="M50 10 L90 32.5 L90 67.5 L50 90 L10 67.5 L10 32.5 Z"/>
+                </svg>
+                <h1>Vault LDAP Credentials</h1>
+            </div>
+            <p>Automatically rotated credentials managed by HashiCorp Vault</p>
+            <div class="status-badge">Live Demo</div>
         </div>
         
-        <div class="header">
-            <h1>Vault LDAP Credentials <span class="status-badge">LIVE</span></h1>
-            <p>Credentials managed by HashiCorp Vault with automatic rotation</p>
+        <!-- Main content -->
+        <div class="content">
+            <h2 class="section-title">Active Credentials</h2>
+            
+            <div class="credentials-grid">
+                <div class="credential-card">
+                    <div class="credential-label">Username</div>
+                    <div class="credential-value">{{ username }}</div>
+                </div>
+                
+                <div class="credential-card">
+                    <div class="credential-label">Password</div>
+                    <div class="credential-value">{{ password }}</div>
+                </div>
+                
+                <div class="credential-card">
+                    <div class="credential-label">Distinguished Name (DN)</div>
+                    <div class="credential-value">{{ dn }}</div>
+                </div>
+                
+                <div class="credential-card">
+                    <div class="credential-label">Last Vault Rotation</div>
+                    <div class="credential-value">{{ last_vault_password }}</div>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-section-title">How It Works</div>
+                <p>
+                    These credentials are automatically rotated by HashiCorp Vault's LDAP secrets engine every 24 hours. 
+                    The Vault Secrets Operator synchronizes the rotated credentials to Kubernetes secrets, which are 
+                    then injected into this application as environment variables. When credentials rotate, the application 
+                    automatically restarts with the new values.
+                </p>
+            </div>
         </div>
-
-        <div class="credential-section">
-            <div class="credential-label">Username</div>
-            <div class="credential-value">{{ username }}</div>
-        </div>
-
-        <div class="credential-section">
-            <div class="credential-label">Password</div>
-            <div class="credential-value">{{ password }}</div>
-        </div>
-
-        <div class="credential-section">
-            <div class="credential-label">Distinguished Name (DN)</div>
-            <div class="credential-value">{{ dn }}</div>
-        </div>
-
-        <div class="credential-section">
-            <div class="credential-label">Last Vault Password</div>
-            <div class="credential-value">{{ last_vault_password }}</div>
-        </div>
-
-        <div class="info-box">
-            <p>
-                <strong>🔐 How it works:</strong> These credentials are automatically rotated by HashiCorp Vault's 
-                LDAP secrets engine every 24 hours. The Vault Secrets Operator synchronizes the rotated credentials 
-                to Kubernetes secrets, which are then injected into this application as environment variables. 
-                When credentials rotate, the application automatically restarts with the new values.
-            </p>
-        </div>
-
-        <div class="timestamp">
-            <strong>Page loaded:</strong> {{ current_time }}
-        </div>
-
-        <div class="footer">
-            <p>
+        
+        <!-- Footer metadata -->
+        <div class="metadata">
+            <div><strong>Page loaded:</strong> {{ current_time }}</div>
+            <div class="powered-by">
                 Powered by 
-                <a href="https://developer.hashicorp.com/vault" target="_blank">HashiCorp Vault</a> + 
-                <a href="https://developer.hashicorp.com/vault/docs/platform/k8s/vso" target="_blank">Vault Secrets Operator</a>
-            </p>
+                <a href="https://developer.hashicorp.com/vault" target="_blank">HashiCorp Vault</a>
+                +
+                <a href="https://developer.hashicorp.com/vault/docs/platform/k8s/vso" target="_blank">VSO</a>
+            </div>
         </div>
     </div>
 </body>
