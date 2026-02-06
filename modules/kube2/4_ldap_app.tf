@@ -7,15 +7,16 @@ locals {
   ldap_app_image         = "ghcr.io/andybaran/vault-ldap-demo:v1.0.0"
 }
 
-# Import existing deployment if it exists outside of Terraform state
-# This handles cases where state and reality are out of sync
-# The import block can be removed after successful import
+# Import blocks for Kubernetes resources
+# These are idempotent in Terraform 1.5+ and can remain permanently:
+# - If the resource exists in K8s but not in state: imports it
+# - If the resource is already in state: no-op (ignored)
+# - If the resource doesn't exist: Terraform creates it normally
 import {
   to = kubernetes_deployment_v1.ldap_app
   id = "${var.kube_namespace}/${local.ldap_app_name}"
 }
 
-# Import existing service if it exists outside of Terraform state
 import {
   to = kubernetes_service_v1.ldap_app
   id = "${var.kube_namespace}/${local.ldap_app_name}"
