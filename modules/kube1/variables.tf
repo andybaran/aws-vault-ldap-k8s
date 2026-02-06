@@ -17,4 +17,15 @@ variable "vault_license_key" {
   description = "The Vault Enterprise license key."
   type        = string
   sensitive   = false
+}
+
+variable "ldap_dc_private_ip" {
+  description = "Private IP address of the Active Directory Domain Controller"
+  type        = string
+}
+
+variable "ldap_admin_password" {
+  description = "Administrator password for the Active Directory Domain Controller"
+  type        = string
+  sensitive   = true
 }  

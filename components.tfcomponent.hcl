@@ -26,6 +26,8 @@ component "kube1" {
     cluster_endpoint                        = component.kube0.cluster_endpoint
     kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
     vault_license_key                       = var.vault_license_key
+    ldap_dc_private_ip                      = component.ldap.dc-priv-ip
+    ldap_admin_password                     = component.ldap.password
   }
   providers = {
     aws        = provider.aws.this
