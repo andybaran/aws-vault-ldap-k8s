@@ -20,6 +20,22 @@ module "eks" {
   vpc_id                                   = module.vpc.vpc_id
   subnet_ids                               = module.vpc.private_subnets
 
+  # Grant admin access to additional IAM principals (e.g., HCP Terraform execution role)
+  access_entries = {
+    hcp_terraform = {
+      principal_arn = data.aws_caller_identity.current.arn
+      type          = "STANDARD"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   kms_key_administrators = [
     local.extra_doormat_role,
     data.aws_iam_session_context.current.issuer_arn,

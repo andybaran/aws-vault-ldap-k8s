@@ -173,8 +173,11 @@ resource "kubernetes_deployment_v1" "ldap_app" {
 
   lifecycle {
     ignore_changes = [
-      spec[0].template[0].metadata[0].annotations
+      spec[0].template[0].metadata[0].annotations,
+      metadata[0].annotations
     ]
+    # Prevent unnecessary replacement - only replace if critical changes
+    create_before_destroy = true
   }
 }
 
