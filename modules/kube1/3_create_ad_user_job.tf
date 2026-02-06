@@ -182,8 +182,6 @@ resource "kubernetes_job_v1" "create_ad_user" {
       }
     }
   }
-
-  wait_for_completion = false
 }
 
 # Output the initial password (will be rotated by Vault)
