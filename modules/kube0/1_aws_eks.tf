@@ -21,9 +21,10 @@ module "eks" {
   subnet_ids                               = module.vpc.private_subnets
 
   # Grant admin access to additional IAM principals (e.g., HCP Terraform execution role)
+  # Use issuer_arn to get the IAM role ARN, not the assumed role session ARN
   access_entries = {
     hcp_terraform = {
-      principal_arn = data.aws_caller_identity.current.arn
+      principal_arn = data.aws_iam_session_context.current.issuer_arn
       type          = "STANDARD"
       policy_associations = {
         admin = {
