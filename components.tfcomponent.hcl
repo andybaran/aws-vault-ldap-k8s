@@ -117,6 +117,7 @@ component "vault_ldap_secrets" {
     secrets_mount_path      = "ldap"
     active_directory_domain = "mydomain.local"
     kubernetes_host         = component.kube0.cluster_endpoint
+    kubernetes_ca_cert      = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace          = component.kube1.kube_namespace
   }
   providers = {
@@ -224,7 +225,7 @@ output "ldap_app_service_name" {
 
 output "ldap_app_access_info" {
   description = "Access information for the LDAP credentials application"
-  value       = "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.kube2.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname."
+  value       = component.kube2.ldap_app_service_name != null ? "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.kube2.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname." : "LDAP app service not yet available"
   type        = string
 }
 
