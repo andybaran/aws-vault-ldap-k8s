@@ -26,7 +26,6 @@ module "eks" {
 
   # Additional IAM policies for cluster role
   # AmazonEKSVPCResourceController is required for Windows support
-  cluster_additional_security_group_ids = []
   iam_role_additional_policies = {
     AmazonEKSVPCResourceController = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
   }
