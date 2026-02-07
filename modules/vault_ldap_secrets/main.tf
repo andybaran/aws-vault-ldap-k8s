@@ -9,6 +9,12 @@ resource "vault_ldap_secret_backend" "ad" {
   bindpass = var.ldap_bindpass
   url      = var.ldap_url
 
+  # AD requires TLS for password modifications (LDAP Result Code 53 otherwise).
+  # StartTLS upgrades the plain LDAP connection to TLS on port 389.
+  # insecure_tls accepts the DC's self-signed certificate (demo only).
+  starttls     = true
+  insecure_tls = true
+
   # Active Directory schema
   schema = "ad"
 
