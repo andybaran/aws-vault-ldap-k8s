@@ -24,6 +24,13 @@ module "eks" {
   # access to the IAM role that creates the cluster. No need for explicit
   # access_entries for the same role - that would cause a duplicate conflict.
 
+  # Additional IAM policies for cluster role
+  # AmazonEKSVPCResourceController is required for Windows support
+  cluster_additional_security_group_ids = []
+  iam_role_additional_policies = {
+    AmazonEKSVPCResourceController = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
+  }
+
   kms_key_administrators = [
     local.extra_doormat_role,
     data.aws_iam_session_context.current.issuer_arn,

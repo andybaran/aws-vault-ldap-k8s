@@ -1,6 +1,6 @@
 output "kube_namespace" {
-  description = "The Kubernetes namespace created for the application."
-  value       = kubernetes_namespace_v1.simple_app.metadata.0.name
+  description = "The Kubernetes namespace for the application (default)."
+  value       = "default"
   ephemeral   = false
   sensitive   = false
 }
