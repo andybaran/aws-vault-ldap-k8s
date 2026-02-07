@@ -11,7 +11,7 @@ resource "tls_private_key" "rsa-4096-key" {
 
 // Create an AWS keypair using the keypair we just generated
 resource "aws_key_pair" "rdp-key" {
-  key_name = "${var.prefix}-${var.aws_key_pair_name}"
+  key_name   = "${var.prefix}-${var.aws_key_pair_name}"
   public_key = tls_private_key.rsa-4096-key.public_key_openssh
 }
 
@@ -28,20 +28,20 @@ resource "aws_security_group" "rdp_ingress" {
     cidr_blocks = [var.allowlist_ip]
   }
 
-    ingress {
+  ingress {
     from_port   = 3389
     to_port     = 3389
     protocol    = "udp"
     cidr_blocks = [var.allowlist_ip]
   }
-  
+
   ingress {
     from_port   = 88
     to_port     = 88
     protocol    = "tcp"
     cidr_blocks = [var.allowlist_ip]
   }
-  
+
   ingress {
     from_port   = 88
     to_port     = 88
@@ -53,12 +53,12 @@ resource "aws_security_group" "rdp_ingress" {
 
 // Create a random string to be used in the user_data script
 resource "random_string" "DSRMPassword" {
-  length = 8
+  length           = 8
   override_special = "." # I've set this explicitly so as to avoid characters such as "$" and "'" being used and requiring unneccesary complexity to our user_data scripts
-  min_lower = 1
-  min_upper = 1
-  min_numeric = 1
-  min_special = 1
+  min_lower        = 1
+  min_upper        = 1
+  min_numeric      = 1
+  min_special      = 1
 }
 
 
@@ -67,7 +67,7 @@ resource "random_string" "DSRMPassword" {
 // Deploy a Windows EC2 instance using the previously created, aws_security_group's, aws_key_pair and use a userdata script to create a windows domain controller
 data "aws_ami" "windows_2022" {
   most_recent = true
-  owners      = ["amazon"]  # Amazon's owner ID for Windows AMIs
+  owners      = ["amazon"] # Amazon's owner ID for Windows AMIs
 
   filter {
     name   = "name"
@@ -85,7 +85,7 @@ resource "aws_instance" "domain_controller" {
   ami                    = data.aws_ami.windows_2022.id
   instance_type          = var.domain_controller_instance_type
   vpc_security_group_ids = [aws_security_group.rdp_ingress.id, var.shared_internal_sg_id]
-  subnet_id = var.subnet_id
+  subnet_id              = var.subnet_id
   key_name               = aws_key_pair.rdp-key.key_name
 
   root_block_device {
@@ -101,17 +101,17 @@ resource "aws_instance" "domain_controller" {
                   $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
                   Add-WindowsFeature -name ad-domain-services -IncludeManagementTools
                   Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
-                  %{ if var.only_ntlmv2 ~}
+                  %{if var.only_ntlmv2~}
                     Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"  -Name LMCompatibilityLevel -Value 5 
-                  %{ endif ~}
-                  %{ if var.only_kerberos ~}
+                  %{endif~}
+                  %{if var.only_kerberos~}
                     Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictSendingNTLMTraffic -Value 2 
                     Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictReceivingNTLMTraffic -Value 2 
-                  %{ endif ~}    
+                  %{endif~}    
                   Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true
                 </powershell>
               EOF
-  
+
   metadata_options {
     http_endpoint          = "enabled"
     instance_metadata_tags = "enabled"
@@ -132,6 +132,6 @@ resource "aws_eip" "domain_controller_eip" {
 }
 
 locals {
-  password = rsadecrypt(aws_instance.domain_controller.password_data,tls_private_key.rsa-4096-key.private_key_pem)
+  password = rsadecrypt(aws_instance.domain_controller.password_data, tls_private_key.rsa-4096-key.private_key_pem)
 }
 

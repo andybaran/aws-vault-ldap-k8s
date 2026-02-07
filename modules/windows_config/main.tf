@@ -1,6 +1,142 @@
-# Kubernetes Job to create the vault-demo user in Active Directory
-# This job runs once after DC provisioning to create the user that Vault will manage
+# Windows Configuration Module
+# This module handles Windows-specific Kubernetes configuration:
+# 1. Enables Windows IPAM in VPC CNI (required for Windows node pools)
+# 2. Creates the vault-demo AD user (requires Windows IPAM to be enabled first)
 
+# Service Account for the jobs
+resource "kubernetes_service_account_v1" "windows_config" {
+  metadata {
+    name      = "windows-config-sa"
+    namespace = var.kube_namespace
+  }
+}
+
+# ClusterRole with permissions to manage VPC CNI DaemonSet in kube-system
+resource "kubernetes_cluster_role_v1" "vpc_cni_manager" {
+  metadata {
+    name = "${var.kube_namespace}-vpc-cni-manager"
+  }
+
+  rule {
+    api_groups     = ["apps"]
+    resources      = ["daemonsets"]
+    resource_names = ["aws-node"]
+    verbs          = ["get", "list", "patch", "update"]
+  }
+}
+
+# ClusterRoleBinding to grant the service account VPC CNI management permissions
+resource "kubernetes_cluster_role_binding_v1" "vpc_cni_manager" {
+  metadata {
+    name = "${var.kube_namespace}-vpc-cni-manager-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role_v1.vpc_cni_manager.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.windows_config.metadata[0].name
+    namespace = var.kube_namespace
+  }
+}
+
+# Job 1: Enable Windows IPAM in VPC CNI
+# This MUST run first, before any Windows pods can be scheduled
+resource "kubernetes_job_v1" "windows_k8s_config" {
+  metadata {
+    name      = "windows-k8s-config"
+    namespace = var.kube_namespace
+  }
+
+  wait_for_completion = true
+
+  timeouts {
+    create = "5m"
+    update = "5m"
+  }
+
+  spec {
+    ttl_seconds_after_finished = 3600
+
+    template {
+      metadata {
+        labels = {
+          app = "windows-k8s-config"
+        }
+      }
+
+      spec {
+        service_account_name = kubernetes_service_account_v1.windows_config.metadata[0].name
+        restart_policy       = "Never"
+
+        container {
+          name    = "enable-windows-ipam"
+          image   = "hashicorp/vault-enterprise:1.21.2-ent"
+          command = ["/bin/sh", "-c"]
+          args = [<<-EOT
+            # Get kubectl
+            echo "Downloading kubectl..."
+            wget https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl
+            chmod +x kubectl
+
+            # Enable Windows IPAM for VPC CNI (required for Windows pods)
+            echo "================================================"
+            echo "Enabling Windows IPAM in VPC CNI"
+            echo "================================================"
+            
+            # Wait for aws-node DaemonSet to exist
+            echo "Waiting for VPC CNI aws-node DaemonSet..."
+            for i in $(seq 1 30); do
+              if ./kubectl get daemonset aws-node -n kube-system >/dev/null 2>&1; then
+                echo "✓ aws-node DaemonSet found"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "✗ ERROR: Timeout waiting for aws-node DaemonSet"
+                exit 1
+              fi
+              echo "  Waiting... (attempt $i/30)"
+              sleep 10
+            done
+
+            # Check if Windows IPAM is already enabled
+            echo "Checking current Windows IPAM status..."
+            CURRENT_VALUE=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_WINDOWS_IPAM")].value}' 2>/dev/null || echo "")
+            
+            if [ "$CURRENT_VALUE" = "true" ]; then
+              echo "✓ Windows IPAM already enabled, skipping"
+            else
+              echo "Enabling Windows IPAM..."
+              ./kubectl set env daemonset/aws-node -n kube-system ENABLE_WINDOWS_IPAM=true
+              
+              # Verify the change
+              echo "Verifying Windows IPAM is enabled..."
+              UPDATED_VALUE=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_WINDOWS_IPAM")].value}')
+              if [ "$UPDATED_VALUE" = "true" ]; then
+                echo "✓ Windows IPAM enabled successfully"
+              else
+                echo "✗ ERROR: Failed to verify Windows IPAM setting"
+                exit 1
+              fi
+            fi
+
+            echo "✓ Windows IPAM configuration completed"
+            echo "================================================"
+          EOT
+          ]
+        }
+      }
+    }
+
+    backoff_limit = 4
+  }
+}
+
+# Locals for AD user creation
 locals {
   ldap_server                 = var.ldap_dc_private_ip
   ldap_admin_dn               = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
@@ -12,7 +148,7 @@ locals {
 resource "kubernetes_secret_v1" "ldap_admin_creds" {
   metadata {
     name      = "ldap-admin-creds"
-    namespace = kubernetes_namespace_v1.simple_app.metadata[0].name
+    namespace = var.kube_namespace
   }
 
   data = {
@@ -27,7 +163,7 @@ resource "kubernetes_secret_v1" "ldap_admin_creds" {
 resource "kubernetes_config_map_v1" "create_ad_user_script" {
   metadata {
     name      = "create-ad-user-script"
-    namespace = kubernetes_namespace_v1.simple_app.metadata[0].name
+    namespace = var.kube_namespace
   }
 
   data = {
@@ -204,26 +340,25 @@ resource "kubernetes_config_map_v1" "create_ad_user_script" {
   }
 }
 
-# Job to create the AD user
+# Job 2: Create AD user
+# This job depends on Windows IPAM being enabled (Job 1)
 resource "kubernetes_job_v1" "create_ad_user" {
+  # Wait for Windows IPAM to be enabled first
+  depends_on = [kubernetes_job_v1.windows_k8s_config]
+
   metadata {
     name      = "create-ad-user"
-    namespace = kubernetes_namespace_v1.simple_app.metadata[0].name
+    namespace = var.kube_namespace
   }
 
-  # Wait for the job to complete before Terraform marks it as created
-  # This ensures vault_ldap_secrets component waits for the user to exist
   wait_for_completion = true
 
-  # Timeout for job completion (increased to accommodate retry logic)
-  # Max retries: 30 * 10 seconds = 5 minutes + installation time
   timeouts {
     create = "10m"
     update = "10m"
   }
 
   spec {
-    # Keep completed job for 1 hour for debugging
     ttl_seconds_after_finished = 3600
 
     template {
@@ -250,12 +385,9 @@ resource "kubernetes_job_v1" "create_ad_user" {
         }
 
         container {
-          name = "create-ad-user"
-          # Windows Server Core with PowerShell and AD tools
-          # ltsc2022 = Long-Term Servicing Channel 2022 (stable)
+          name  = "create-ad-user"
           image = "mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2022"
 
-          # PowerShell command to run the script
           command = ["pwsh", "-Command"]
           args = [
             <<-EOT
@@ -307,11 +439,4 @@ resource "kubernetes_job_v1" "create_ad_user" {
       }
     }
   }
-}
-
-# Output the initial password (will be rotated by Vault)
-output "vault_demo_initial_password" {
-  description = "Initial password for vault-demo user (will be rotated by Vault)"
-  value       = local.vault_demo_initial_password
-  sensitive   = true
 }

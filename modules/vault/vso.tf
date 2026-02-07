@@ -69,7 +69,7 @@ resource "kubernetes_manifest" "vault_auth" {
       namespace = var.kube_namespace
     }
     spec = {
-      vaultConnectionRef = "default"  # References VaultConnection name
+      vaultConnectionRef = "default" # References VaultConnection name
       method             = "kubernetes"
       mount              = "kubernetes"
       kubernetes = {
