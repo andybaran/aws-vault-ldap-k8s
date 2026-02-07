@@ -1,17 +1,17 @@
 variable "user_email" {
-  type = string
+  type        = string
   description = "e-mail address"
-  default = "user@ibm.com"
+  default     = "user@ibm.com"
 }
 
 variable "instance_type" {
-  type = string
+  type        = string
   description = "EKS worker node instance type"
-  default = "t3.medium"
+  default     = "t3.medium"
 }
 
 variable "customer_name" {
-  type = string
+  type        = string
   description = "Customer name"
 }
 
