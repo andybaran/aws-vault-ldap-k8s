@@ -74,13 +74,13 @@ module "eks" {
         os       = "windows"
       }
 
-      taints = [
-        {
+      taints = {
+        windows = {
           key    = "os"
           value  = "windows"
           effect = "NoSchedule"
         }
-      ]
+      }
     }
   }
 }
