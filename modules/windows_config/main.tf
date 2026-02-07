@@ -55,8 +55,8 @@ resource "kubernetes_job_v1" "windows_k8s_config" {
   wait_for_completion = true
 
   timeouts {
-    create = "5m"
-    update = "5m"
+    create = "15m"
+    update = "15m"
   }
 
   spec {
@@ -108,7 +108,7 @@ resource "kubernetes_job_v1" "windows_k8s_config" {
             CURRENT_VALUE=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_WINDOWS_IPAM")].value}' 2>/dev/null || echo "")
             
             if [ "$CURRENT_VALUE" = "true" ]; then
-              echo "✓ Windows IPAM already enabled, skipping"
+              echo "✓ Windows IPAM already enabled"
             else
               echo "Enabling Windows IPAM..."
               ./kubectl set env daemonset/aws-node -n kube-system ENABLE_WINDOWS_IPAM=true
@@ -122,6 +122,73 @@ resource "kubernetes_job_v1" "windows_k8s_config" {
                 echo "✗ ERROR: Failed to verify Windows IPAM setting"
                 exit 1
               fi
+            fi
+
+            # Wait for DaemonSet rollout to complete
+            echo "================================================"
+            echo "Waiting for VPC CNI DaemonSet rollout..."
+            echo "================================================"
+            
+            for i in $(seq 1 30); do
+              # Check DaemonSet rollout status
+              DESIRED=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.status.desiredNumberScheduled}')
+              UPDATED=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.status.updatedNumberScheduled}')
+              AVAILABLE=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.status.numberAvailable}')
+              
+              echo "DaemonSet status: Desired=$DESIRED, Updated=$UPDATED, Available=$AVAILABLE"
+              
+              if [ "$DESIRED" = "$UPDATED" ] && [ "$DESIRED" = "$AVAILABLE" ] && [ -n "$DESIRED" ] && [ "$DESIRED" != "0" ]; then
+                echo "✓ VPC CNI DaemonSet rollout complete"
+                break
+              fi
+              
+              if [ $i -eq 30 ]; then
+                echo "⚠ WARNING: DaemonSet rollout did not complete in time"
+                echo "Proceeding anyway - Windows nodes may need additional time"
+              fi
+              
+              echo "  Waiting for rollout... (attempt $i/30)"
+              sleep 10
+            done
+
+            # Additional wait for Windows nodes to initialize with new IPAM config
+            # Windows networking initialization takes longer than Linux
+            echo "================================================"
+            echo "Waiting for Windows nodes to initialize..."
+            echo "================================================"
+            
+            # Check if Windows nodes exist
+            WINDOWS_NODE_COUNT=$(./kubectl get nodes -l kubernetes.io/os=windows --no-headers 2>/dev/null | wc -l)
+            echo "Found $WINDOWS_NODE_COUNT Windows node(s)"
+            
+            if [ "$WINDOWS_NODE_COUNT" -gt 0 ]; then
+              # Wait for Windows nodes to be Ready
+              echo "Checking Windows node readiness..."
+              for i in $(seq 1 30); do
+                READY_COUNT=$(./kubectl get nodes -l kubernetes.io/os=windows -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' | grep -c "True" || echo "0")
+                echo "  Windows nodes ready: $READY_COUNT/$WINDOWS_NODE_COUNT"
+                
+                if [ "$READY_COUNT" = "$WINDOWS_NODE_COUNT" ]; then
+                  echo "✓ All Windows nodes are Ready"
+                  break
+                fi
+                
+                if [ $i -eq 30 ]; then
+                  echo "⚠ WARNING: Not all Windows nodes ready"
+                fi
+                
+                sleep 10
+              done
+              
+              # Give Windows IPAM additional time to fully initialize
+              # Windows CNI configuration is slower than Linux
+              echo "Allowing additional time for Windows IPAM initialization..."
+              sleep 30
+              
+              echo "✓ Windows nodes initialization wait completed"
+            else
+              echo "⚠ No Windows nodes found - skipping readiness check"
+              echo "Windows pods may fail if nodes are not yet joined to the cluster"
             fi
 
             echo "✓ Windows IPAM configuration completed"
