@@ -4,7 +4,7 @@
 locals {
   ldap_app_name        = "ldap-credentials-app"
   ldap_app_secret_name = "ldap-credentials"
-  ldap_app_image       = "ghcr.io/andybaran/vault-ldap-demo:latest"
+  ldap_app_image       = "ghcr.io/andybaran/aws-vault-ldap-k8s/vault-ldap-demo:latest"
 }
 
 # VaultDynamicSecret CR for LDAP credentials

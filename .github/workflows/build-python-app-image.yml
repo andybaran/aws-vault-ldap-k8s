@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/vault-ldap-demo
+  IMAGE_NAME: ${{ github.repository }}/vault-ldap-demo
 
 jobs:
   build-and-push:
