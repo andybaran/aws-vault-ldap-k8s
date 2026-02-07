@@ -271,6 +271,14 @@ resource "kubernetes_config_map_v1" "create_ad_user_script" {
       # PowerShell script to create vault-demo user in Active Directory
       # Uses native AD cmdlets - simpler and more reliable than LDAP tools
       
+      # Install PowerShell Active Directory module
+      Write-Host "==============================================="
+      Write-Host "Installing Active Directory PowerShell module..."
+      Install-WindowsFeature -Name "RSAT-AD-PowerShell"
+      Write-Host "==============================================="
+
+
+
       $ErrorActionPreference = "Stop"
       
       $ADServer = "${local.ldap_server}"
