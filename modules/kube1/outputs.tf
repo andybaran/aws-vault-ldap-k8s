@@ -11,11 +11,3 @@ output "ad_user_job_status" {
   ephemeral   = false
   sensitive   = false
 }
-
-output "windows_ipam_enabled" {
-  description = "Indicates that Windows IPAM has been enabled in VPC CNI"
-  value       = "Windows IPAM enabled via kubectl patch (local-exec)"
-  depends_on  = [null_resource.enable_windows_ipam]
-  ephemeral   = false
-  sensitive   = false
-}

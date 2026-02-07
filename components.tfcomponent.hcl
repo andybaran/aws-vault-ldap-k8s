@@ -34,7 +34,6 @@ component "kube1" {
     kubernetes = provider.kubernetes.this
     helm       = provider.helm.this
     time       = provider.time.this
-    null       = provider.null.this
   }
 
 }

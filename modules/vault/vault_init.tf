@@ -10,7 +10,7 @@ resource "kubernetes_secret_v1" "vault-init-data" {
   metadata {
     name      = "vault-init-data"
     namespace = var.kube_namespace
-}
+  }
   type = "Opaque"
 }
 
@@ -22,7 +22,7 @@ resource "kubernetes_service_account_v1" "secret_writer" {
   }
 }
 
-# Role with permissions to manage secrets
+# Role with permissions to manage secrets in the namespace
 resource "kubernetes_role_v1" "secret_writer" {
   metadata {
     name      = "secret-writer-role"
@@ -32,7 +32,7 @@ resource "kubernetes_role_v1" "secret_writer" {
   rule {
     api_groups     = [""]
     resources      = ["secrets"]
-    resource_names = ["vault-init-data"]  # Only allow access to this specific secret
+    resource_names = ["vault-init-data"] # Only allow access to this specific secret
     verbs          = ["get", "create", "update", "patch"]
   }
 }
@@ -48,6 +48,39 @@ resource "kubernetes_role_binding_v1" "secret_writer" {
     api_group = "rbac.authorization.k8s.io"
     kind      = "Role"
     name      = kubernetes_role_v1.secret_writer.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.secret_writer.metadata[0].name
+    namespace = var.kube_namespace
+  }
+}
+
+# ClusterRole with permissions to manage VPC CNI DaemonSet in kube-system
+resource "kubernetes_cluster_role_v1" "vpc_cni_manager" {
+  metadata {
+    name = "${var.kube_namespace}-vpc-cni-manager"
+  }
+
+  rule {
+    api_groups     = ["apps"]
+    resources      = ["daemonsets"]
+    resource_names = ["aws-node"]
+    verbs          = ["get", "list", "patch", "update"]
+  }
+}
+
+# ClusterRoleBinding to grant the service account VPC CNI management permissions
+resource "kubernetes_cluster_role_binding_v1" "vpc_cni_manager" {
+  metadata {
+    name = "${var.kube_namespace}-vpc-cni-manager-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role_v1.vpc_cni_manager.metadata[0].name
   }
 
   subject {
@@ -96,6 +129,50 @@ resource "kubernetes_job_v1" "vault_init" {
             chmod +x kubectl
             wget https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64
             chmod +x jq-linux-amd64
+
+            # Enable Windows IPAM for VPC CNI (required for Windows pods)
+            echo "================================================"
+            echo "Enabling Windows IPAM in VPC CNI"
+            echo "================================================"
+            
+            # Wait for aws-node DaemonSet to exist
+            echo "Waiting for VPC CNI aws-node DaemonSet..."
+            for i in $(seq 1 30); do
+              if ./kubectl get daemonset aws-node -n kube-system >/dev/null 2>&1; then
+                echo "✓ aws-node DaemonSet found"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "✗ ERROR: Timeout waiting for aws-node DaemonSet"
+                exit 1
+              fi
+              echo "  Waiting... (attempt $i/30)"
+              sleep 10
+            done
+
+            # Check if Windows IPAM is already enabled
+            echo "Checking current Windows IPAM status..."
+            CURRENT_VALUE=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_WINDOWS_IPAM")].value}' 2>/dev/null || echo "")
+            
+            if [ "$CURRENT_VALUE" = "true" ]; then
+              echo "✓ Windows IPAM already enabled, skipping"
+            else
+              echo "Enabling Windows IPAM..."
+              ./kubectl set env daemonset/aws-node -n kube-system ENABLE_WINDOWS_IPAM=true
+              
+              # Verify the change
+              echo "Verifying Windows IPAM is enabled..."
+              UPDATED_VALUE=$(./kubectl get daemonset aws-node -n kube-system -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_WINDOWS_IPAM")].value}')
+              if [ "$UPDATED_VALUE" = "true" ]; then
+                echo "✓ Windows IPAM enabled successfully"
+              else
+                echo "✗ ERROR: Failed to verify Windows IPAM setting"
+                exit 1
+              fi
+            fi
+
+            echo "✓ Windows IPAM configuration completed"
+            echo "================================================"
 
             # Wait for Vault to be responsive
             until nc -z $(getent hosts vault-0.vault-internal | awk '{print $1}') 8200; do
