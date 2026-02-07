@@ -30,8 +30,8 @@ output "eks_cluster_name" {
 
 output "eks_cluster_id" {
   description = "The ID of the EKS cluster."
-  value       = module.eks.cluster_id 
-  sensitive   = false 
+  value       = module.eks.cluster_id
+  sensitive   = false
 }
 
 output "eks_cluster_auth" {
