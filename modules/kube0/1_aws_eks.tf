@@ -40,6 +40,13 @@ module "eks" {
     }
     vpc-cni = {
       before_compute = true
+      # Enable Windows IPAM for Windows pod networking
+      # Required for Windows nodes to assign IP addresses to pods
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_WINDOWS_IPAM = "true"
+        }
+      })
     }
     aws-ebs-csi-driver = {
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
