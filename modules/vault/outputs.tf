@@ -68,5 +68,5 @@ output "vault_ui_loadbalancer_hostname" {
 
 output "vso_vault_auth_name" {
   description = "The name of the VaultAuth resource for VSO"
-  value       = "default"  # Matches the name defined in vso.tf VaultAuth resource
+  value       = "default" # Matches the name defined in vso.tf VaultAuth resource
 }

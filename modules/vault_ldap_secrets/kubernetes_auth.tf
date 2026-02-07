@@ -12,7 +12,7 @@ resource "vault_kubernetes_auth_backend_config" "config" {
   backend            = vault_auth_backend.kubernetes.path
   kubernetes_host    = var.kubernetes_host
   kubernetes_ca_cert = base64decode(var.kubernetes_ca_cert)
-  
+
   # When disable_local_ca_jwt is false, Vault validates JWT tokens locally using the CA cert
   # This is more reliable than calling the K8s API for token review
   disable_local_ca_jwt = false
