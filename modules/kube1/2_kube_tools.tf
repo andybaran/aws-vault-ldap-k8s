@@ -4,23 +4,14 @@ resource "kubernetes_secret_v1" "vault_license" {
   }
   metadata {
     name      = "vault-license"
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = "default"
   }
   type = "Opaque"
 
 }
 
-resource "kubernetes_namespace_v1" "simple_app" {
-  metadata {
-    name = "simple-app"
-  }
-}
-
 resource "aws_eip" "nginx_ingress" {
   count = 3
-  depends_on = [
-    kubernetes_namespace_v1.simple_app,
-  ]
 }
 
 resource "time_sleep" "eip_wait" {
@@ -57,7 +48,7 @@ EOT
 resource "kubernetes_service_account_v1" "vault" {
   metadata {
     name      = "vault-auth"
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = "default"
   }
   automount_service_account_token = true
 }
@@ -65,7 +56,7 @@ resource "kubernetes_service_account_v1" "vault" {
 resource "kubernetes_secret_v1" "vault_token" {
   metadata {
     name      = kubernetes_service_account_v1.vault.metadata.0.name
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = "default"
     annotations = {
       "kubernetes.io/service-account.name" = "vault-auth"
     }
@@ -75,8 +66,6 @@ resource "kubernetes_secret_v1" "vault_token" {
 }
 
 resource "kubernetes_cluster_role_binding_v1" "vault" {
-  #count      = var.step_2 ? 1 : 0
-  #depends_on = [time_sleep.step_2]
   metadata {
     name = "role-tokenreview-binding"
   }
@@ -90,6 +79,6 @@ resource "kubernetes_cluster_role_binding_v1" "vault" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account_v1.vault.metadata.0.name
-    namespace = kubernetes_namespace_v1.simple_app.metadata.0.name
+    namespace = "default"
   }
 }

@@ -110,7 +110,7 @@ resource "kubernetes_job_v1" "vault_init" {
               cat /tmp/init.json
 
               # Store init data in Kubernetes secret
-              ./kubectl create secret generic vault-init-data --from-file=init.json=/tmp/init.json -n simple-app --dry-run=client -o yaml | ./kubectl apply -f -
+              ./kubectl create secret generic vault-init-data --from-file=init.json=/tmp/init.json -n ${var.kube_namespace} --dry-run=client -o yaml | ./kubectl apply -f -
 
               # Unseal Vault using the keys
               UNSEAL_KEY_1=$(./jq-linux-amd64 -r '.unseal_keys_b64[0:1][]' /tmp/init.json)
@@ -168,7 +168,7 @@ resource "kubernetes_job_v1" "vault_init" {
              export VAULT_ADDR=http://vault-0.vault-internal:8200
 
              # Try to get the stored init data
-             ./kubectl get secret vault-init-data -n simple-app -o jsonpath='{.data.init\.json}' | base64 -d > /tmp/init.json
+             ./kubectl get secret vault-init-data -n ${var.kube_namespace} -o jsonpath='{.data.init\.json}' | base64 -d > /tmp/init.json
 
              UNSEAL_KEY_1=$(./jq-linux-amd64 -r '.unseal_keys_b64[0:1][]' /tmp/init.json)
              UNSEAL_KEY_2=$(./jq-linux-amd64 -r '.unseal_keys_b64[1:2][]' /tmp/init.json)
