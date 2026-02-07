@@ -107,7 +107,27 @@ resource "aws_instance" "domain_controller" {
                   %{if var.only_kerberos~}
                     Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictSendingNTLMTraffic -Value 2 
                     Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictReceivingNTLMTraffic -Value 2 
-                  %{endif~}    
+                  %{endif~}
+
+                  # Create a scheduled task to install AD CS after the post-promotion reboot.
+                  # AD CS auto-enrolls a certificate for the DC, enabling LDAPS on port 636.
+                  $AdcsScript = @'
+                  try {
+                    Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools
+                    Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -Force
+                    # Restart NTDS so the DC picks up the new certificate for LDAPS
+                    Restart-Service NTDS -Force
+                  } finally {
+                    Unregister-ScheduledTask -TaskName 'InstallADCS' -Confirm:$false
+                  }
+                  '@
+                  $AdcsScript | Out-File -FilePath C:\InstallADCS.ps1 -Encoding ASCII
+
+                  $Action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -File C:\InstallADCS.ps1'
+                  $Trigger = New-ScheduledTaskTrigger -AtStartup
+                  $Principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+                  Register-ScheduledTask -TaskName 'InstallADCS' -Action $Action -Trigger $Trigger -Principal $Principal -Description 'Install AD CS after domain promotion reboot'
+
                   Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true
                 </powershell>
               EOF
