@@ -1,0 +1,38 @@
+name: Build AD Tools Windows Image
+
+on:
+  push:
+    paths:
+      - 'docker/ad-tools/**'
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/ad-tools
+
+jobs:
+  build-and-push:
+    runs-on: windows-2022
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          $imageName = "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}".ToLower()
+          docker build -t "${imageName}:ltsc2022" -t "${imageName}:latest" docker/ad-tools/
+          docker push "${imageName}:ltsc2022"
+          docker push "${imageName}:latest"
+        shell: pwsh
