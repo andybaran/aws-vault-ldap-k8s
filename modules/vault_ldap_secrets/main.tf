@@ -12,6 +12,11 @@ resource "vault_ldap_secret_backend" "ad" {
   # Active Directory schema
   schema = "ad"
 
+  # Use CN to search for users — the default for AD schema is userPrincipalName,
+  # but Vault searches with the bare username (e.g., "vault-demo") which doesn't
+  # match the full UPN ("vault-demo@mydomain.local"), causing 0 results.
+  userattr = "cn"
+
   # User search base DN
   userdn = var.ldap_userdn
 
