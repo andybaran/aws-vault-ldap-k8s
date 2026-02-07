@@ -43,6 +43,20 @@ module "eks" {
     }
     aws-ebs-csi-driver = {
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
+      # Configure to run on Linux nodes only (not Windows nodes)
+      # Windows nodes cannot run the Linux-based EBS CSI Driver containers
+      configuration_values = jsonencode({
+        node = {
+          nodeSelector = {
+            "kubernetes.io/os" = "linux"
+          }
+        }
+        controller = {
+          nodeSelector = {
+            "kubernetes.io/os" = "linux"
+          }
+        }
+      })
     }
   }
 
