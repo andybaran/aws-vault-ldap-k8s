@@ -2,9 +2,9 @@
 # This job runs once after DC provisioning to create the user that Vault will manage
 
 locals {
-  ldap_server = var.ldap_dc_private_ip
-  ldap_admin_dn = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
-  vault_demo_username = "vault-demo"
+  ldap_server                 = var.ldap_dc_private_ip
+  ldap_admin_dn               = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
+  vault_demo_username         = "vault-demo"
   vault_demo_initial_password = "VaultDemo123!" # Will be rotated by Vault immediately
 }
 
@@ -23,184 +23,183 @@ resource "kubernetes_secret_v1" "ldap_admin_creds" {
   type = "Opaque"
 }
 
-# ConfigMap with LDIF template for creating the vault-demo user
-resource "kubernetes_config_map_v1" "create_ad_user_ldif" {
+# ConfigMap with PowerShell script for creating the vault-demo user in Active Directory
+resource "kubernetes_config_map_v1" "create_ad_user_script" {
   metadata {
-    name      = "create-ad-user-ldif"
+    name      = "create-ad-user-script"
     namespace = kubernetes_namespace_v1.simple_app.metadata[0].name
   }
 
   data = {
-    "create-user.ldif" = <<-EOT
-      dn: CN=${local.vault_demo_username},CN=Users,DC=mydomain,DC=local
-      objectClass: top
-      objectClass: person
-      objectClass: organizationalPerson
-      objectClass: user
-      cn: ${local.vault_demo_username}
-      sAMAccountName: ${local.vault_demo_username}
-      userPrincipalName: ${local.vault_demo_username}@mydomain.local
-      displayName: Vault Demo Service Account
-      description: Service account managed by HashiCorp Vault for password rotation demo
-      userAccountControl: 514
-    EOT
-
-    "set-password.sh" = <<-EOT
-      #!/bin/bash
-      set -e
+    "Create-ADUser.ps1" = <<-EOT
+      # PowerShell script to create vault-demo user in Active Directory
+      # Uses native AD cmdlets - simpler and more reliable than LDAP tools
       
-      LDAP_SERVER="${local.ldap_server}"
-      VAULT_USER="${local.vault_demo_username}"
-      INITIAL_PASSWORD="${local.vault_demo_initial_password}"
-      USER_DN="CN=$VAULT_USER,CN=Users,DC=mydomain,DC=local"
-      MAX_RETRIES=30
-      RETRY_DELAY=10
+      $ErrorActionPreference = "Stop"
       
-      # For demo: disable certificate verification for LDAPS
-      # In production, use proper certificates
-      export LDAPTLS_REQCERT=never
+      $ADServer = "${local.ldap_server}"
+      $VaultUser = "${local.vault_demo_username}"
+      $InitialPassword = "${local.vault_demo_initial_password}"
+      $UserDN = "CN=$VaultUser,CN=Users,DC=mydomain,DC=local"
+      $MaxRetries = 30
+      $RetryDelay = 10
       
-      echo "==============================================="
-      echo "AD User Creation Job Starting"
-      echo "LDAP Server: $LDAP_SERVER"
-      echo "User: $VAULT_USER"
-      echo "User DN: $USER_DN"
-      echo "Protocol: LDAPS (port 636) - required for unicodePwd"
-      echo "TLS Cert Verification: Disabled (demo mode)"
-      echo "==============================================="
+      Write-Host "==============================================="
+      Write-Host "AD User Creation Job Starting (PowerShell)"
+      Write-Host "AD Server: $ADServer"
+      Write-Host "User: $VaultUser"
+      Write-Host "User DN: $UserDN"
+      Write-Host "Method: Native AD PowerShell cmdlets"
+      Write-Host "==============================================="
       
-      # Wait for LDAPS server to be ready (port 636)
-      echo "Waiting for LDAPS server to be ready..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        if timeout 5 bash -c "echo > /dev/tcp/$LDAP_SERVER/636" 2>/dev/null; then
-          echo "✓ LDAPS server is reachable on port 636"
-          break
-        fi
+      # Build credential object from environment variables
+      $AdminPassword = ConvertTo-SecureString -String $env:ADMIN_PASSWORD -AsPlainText -Force
+      $AdminUsername = ($env:ADMIN_DN -replace 'CN=([^,]+),.*','$1')  # Extract username from DN
+      $DomainName = "mydomain"  # Domain name for credentials
+      $Credential = New-Object System.Management.Automation.PSCredential("$DomainName\$AdminUsername", $AdminPassword)
+      
+      Write-Host "Admin User: $DomainName\$AdminUsername"
+      
+      # Wait for AD server to be ready
+      Write-Host "Waiting for AD server to be ready..."
+      $Connected = $false
+      for ($i = 1; $i -le $MaxRetries; $i++) {
+        try {
+          # Test connection using Test-NetConnection (built-in, no extra modules needed)
+          $TestResult = Test-NetConnection -ComputerName $ADServer -Port 389 -InformationLevel Quiet -WarningAction SilentlyContinue
+          if ($TestResult) {
+            Write-Host "✓ AD server is reachable on port 389"
+            $Connected = $true
+            break
+          }
+        } catch {
+          # Connection failed, will retry
+        }
         
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "✗ ERROR: LDAPS server not reachable after $MAX_RETRIES attempts"
-          echo "Network debugging:"
-          echo "- Testing DNS resolution:"
-          nslookup $LDAP_SERVER || echo "DNS resolution failed"
-          echo "- Testing connectivity on port 636:"
-          nc -zv $LDAP_SERVER 636 2>&1 || echo "TCP connection failed"
-          echo "- Testing connectivity on port 389 (fallback):"
-          nc -zv $LDAP_SERVER 389 2>&1 || echo "TCP connection failed"
+        if ($i -eq $MaxRetries) {
+          Write-Host "✗ ERROR: AD server not reachable after $MaxRetries attempts"
+          Write-Host "Network debugging:"
+          Write-Host "- Testing DNS resolution:"
+          try { Resolve-DnsName $ADServer } catch { Write-Host "DNS resolution failed: $_" }
+          Write-Host "- Testing connectivity:"
+          Test-NetConnection -ComputerName $ADServer -Port 389 -InformationLevel Detailed
           exit 1
-        fi
+        }
         
-        echo "Waiting for LDAPS server... (attempt $i/$MAX_RETRIES)"
-        sleep $RETRY_DELAY
-      done
-      
-      # Additional wait for LDAP service to be fully initialized
-      echo "Waiting 10 seconds for LDAPS service to fully initialize..."
-      sleep 10
-      
-      # Test LDAPS bind before attempting user creation
-      echo "Testing LDAPS authentication..."
-      if ! ldapwhoami -x -H ldaps://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD"; then
-        echo "✗ ERROR: LDAPS authentication failed"
-        echo "Admin DN: $ADMIN_DN"
-        echo "Note: Trying plain LDAP as fallback test..."
-        if ldapwhoami -x -H ldaps://$LDAP_SERVER -D "$ADMIN_DN" -w "$ADMIN_PASSWORD" 2>/dev/null; then
-          echo "⚠ Plain LDAP works but LDAPS fails - certificate issue?"
-        fi
-        exit 1
-      fi
-      echo "✓ LDAPS authentication successful"
-      
-      # Function to encode password for unicodePwd attribute
-      # AD requires: "password" in UTF-16LE, base64 encoded
-      encode_password() {
-        local pwd="$1"
-        # Add quotes around password and encode to UTF-16LE, then base64
-        echo -n "\"$pwd\"" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0
+        Write-Host "Waiting for AD server... (attempt $i/$MaxRetries)"
+        Start-Sleep -Seconds $RetryDelay
       }
       
-      ENCODED_PASSWORD=$(encode_password "$INITIAL_PASSWORD")
+      # Additional wait for AD service to be fully initialized
+      Write-Host "Waiting 10 seconds for AD service to fully initialize..."
+      Start-Sleep -Seconds 10
       
-      # Check if user already exists and delete if so (demo environment)
-      echo "Checking if user $VAULT_USER already exists..."
-      if ldapsearch -x -H ldaps://$LDAP_SERVER \
-          -D "$ADMIN_DN" \
-          -w "$ADMIN_PASSWORD" \
-          -b "$USER_DN" \
-          "(objectClass=*)" dn 2>/dev/null | grep -q "^dn:"; then
-        echo "✓ User $VAULT_USER already exists - deleting for fresh start (demo mode)"
-        if ldapdelete -x -H ldaps://$LDAP_SERVER \
-            -D "$ADMIN_DN" \
-            -w "$ADMIN_PASSWORD" \
-            "$USER_DN"; then
-          echo "✓ Existing user deleted successfully"
-        else
-          echo "⚠ Warning: Failed to delete existing user, will try to create anyway"
-        fi
-      else
-        echo "✓ User $VAULT_USER does not exist, proceeding with creation"
-      fi
-      
-      # Create user with password using unicodePwd (AD-specific method)
-      echo "Creating user $VAULT_USER with password..."
-      echo "Note: Using unicodePwd attribute (AD-specific, not standard LDAP)"
-      
-      # Create LDIF with unicodePwd
-      cat > /tmp/create-user-with-password.ldif <<LDIF
-      dn: $USER_DN
-      objectClass: top
-      objectClass: person
-      objectClass: organizationalPerson
-      objectClass: user
-      cn: $VAULT_USER
-      sAMAccountName: $VAULT_USER
-      userPrincipalName: $VAULT_USER@mydomain.local
-      displayName: Vault Demo Service Account
-      description: Service account managed by HashiCorp Vault for password rotation demo
-      unicodePwd:: $ENCODED_PASSWORD
-      userAccountControl: 512
-      LDIF
-      
-      if ldapadd -x -H ldaps://$LDAP_SERVER \
-          -D "$ADMIN_DN" \
-          -w "$ADMIN_PASSWORD" \
-          -f /tmp/create-user-with-password.ldif; then
-        echo "✓ User created successfully with password"
-      else
-        echo "✗ Failed to create user with password"
-        echo "Debugging: Showing LDIF content (password redacted):"
-        sed 's/unicodePwd::.*/unicodePwd:: <REDACTED>/' /tmp/create-user-with-password.ldif
+      # Import Active Directory module
+      Write-Host "Loading Active Directory PowerShell module..."
+      try {
+        Import-Module ActiveDirectory -ErrorAction Stop
+        Write-Host "✓ Active Directory module loaded successfully"
+      } catch {
+        Write-Host "✗ ERROR: Failed to load Active Directory module: $_"
+        Write-Host "This container may not have the AD PowerShell tools installed."
         exit 1
-      fi
+      }
       
-      # Verify user was created correctly
-      echo "Verifying user creation..."
-      if ldapsearch -x -H ldaps://$LDAP_SERVER \
-          -D "$ADMIN_DN" \
-          -w "$ADMIN_PASSWORD" \
-          -b "$USER_DN" \
-          "(objectClass=*)" sAMAccountName userAccountControl | grep -q "sAMAccountName: $VAULT_USER"; then
-        echo "✓ User verification successful"
-      else
-        echo "⚠ Warning: User verification failed, but continuing"
-      fi
+      # Test AD authentication
+      Write-Host "Testing AD authentication..."
+      try {
+        # Try to query AD - this will fail if credentials are wrong
+        $null = Get-ADDomain -Server $ADServer -Credential $Credential -ErrorAction Stop
+        Write-Host "✓ AD authentication successful"
+      } catch {
+        Write-Host "✗ ERROR: AD authentication failed: $_"
+        exit 1
+      }
       
-      # Test that the password works
-      echo "Testing user authentication with new password..."
-      if ldapwhoami -x -H ldaps://$LDAP_SERVER \
-          -D "$USER_DN" \
-          -w "$INITIAL_PASSWORD"; then
-        echo "✓ User authentication successful - password is working"
-      else
-        echo "⚠ Warning: User authentication test failed"
-      fi
+      # Check if user already exists
+      Write-Host "Checking if user $VaultUser already exists..."
+      try {
+        $ExistingUser = Get-ADUser -Identity $VaultUser -Server $ADServer -Credential $Credential -ErrorAction SilentlyContinue
+        if ($ExistingUser) {
+          Write-Host "✓ User $VaultUser already exists - removing for fresh start (demo mode)"
+          try {
+            Remove-ADUser -Identity $VaultUser -Server $ADServer -Credential $Credential -Confirm:$false -ErrorAction Stop
+            Write-Host "✓ Existing user deleted successfully"
+            Start-Sleep -Seconds 2  # Give AD time to process deletion
+          } catch {
+            Write-Host "⚠ Warning: Failed to delete existing user: $_"
+            Write-Host "Will attempt to create anyway..."
+          }
+        } else {
+          Write-Host "✓ User $VaultUser does not exist, proceeding with creation"
+        }
+      } catch {
+        Write-Host "✓ User $VaultUser does not exist, proceeding with creation"
+      }
       
-      echo "==============================================="
-      echo "✓ AD User Creation Job Completed Successfully"
-      echo "User: $VAULT_USER"
-      echo "DN: $USER_DN"
-      echo "Initial password: $INITIAL_PASSWORD"
-      echo "Note: This password will be rotated by Vault"
-      echo "==============================================="
+      # Create user with password in one operation
+      Write-Host "Creating user $VaultUser with password..."
+      Write-Host "Note: Using New-ADUser cmdlet (native AD, no LDIF/LDAPS complexity)"
+      
+      try {
+        $SecurePassword = ConvertTo-SecureString -String $InitialPassword -AsPlainText -Force
+        
+        New-ADUser `
+          -Name $VaultUser `
+          -SamAccountName $VaultUser `
+          -UserPrincipalName "$VaultUser@mydomain.local" `
+          -DisplayName "Vault Demo Service Account" `
+          -Description "Service account managed by HashiCorp Vault for password rotation demo" `
+          -AccountPassword $SecurePassword `
+          -Enabled $true `
+          -PasswordNeverExpires $false `
+          -ChangePasswordAtLogon $false `
+          -Server $ADServer `
+          -Credential $Credential `
+          -Path "CN=Users,DC=mydomain,DC=local" `
+          -ErrorAction Stop
+        
+        Write-Host "✓ User created successfully with password and enabled"
+      } catch {
+        Write-Host "✗ Failed to create user: $_"
+        Write-Host "Error details: $($_.Exception.Message)"
+        exit 1
+      }
+      
+      # Verify user was created
+      Write-Host "Verifying user creation..."
+      try {
+        $CreatedUser = Get-ADUser -Identity $VaultUser -Server $ADServer -Credential $Credential -Properties Enabled,PasswordNeverExpires -ErrorAction Stop
+        Write-Host "✓ User verification successful"
+        Write-Host "  - SamAccountName: $($CreatedUser.SamAccountName)"
+        Write-Host "  - DistinguishedName: $($CreatedUser.DistinguishedName)"
+        Write-Host "  - Enabled: $($CreatedUser.Enabled)"
+        Write-Host "  - PasswordNeverExpires: $($CreatedUser.PasswordNeverExpires)"
+      } catch {
+        Write-Host "⚠ Warning: User verification failed: $_"
+      }
+      
+      # Test user authentication (validates password is set correctly)
+      Write-Host "Testing user authentication with new password..."
+      try {
+        $TestPassword = ConvertTo-SecureString -String $InitialPassword -AsPlainText -Force
+        $TestCredential = New-Object System.Management.Automation.PSCredential("$DomainName\$VaultUser", $TestPassword)
+        
+        # Try to query AD with the new user's credentials
+        $null = Get-ADDomain -Server $ADServer -Credential $TestCredential -ErrorAction Stop
+        Write-Host "✓ User authentication successful - password is working"
+      } catch {
+        Write-Host "⚠ Warning: User authentication test failed: $_"
+        Write-Host "This may be normal if account needs time to replicate"
+      }
+      
+      Write-Host "==============================================="
+      Write-Host "✓ AD User Creation Job Completed Successfully"
+      Write-Host "User: $VaultUser"
+      Write-Host "DN: $UserDN"
+      Write-Host "Initial password: $InitialPassword"
+      Write-Host "Note: This password will be rotated by Vault"
+      Write-Host "==============================================="
     EOT
   }
 }
@@ -215,7 +214,7 @@ resource "kubernetes_job_v1" "create_ad_user" {
   # Wait for the job to complete before Terraform marks it as created
   # This ensures vault_ldap_secrets component waits for the user to exist
   wait_for_completion = true
-  
+
   # Timeout for job completion (increased to accommodate retry logic)
   # Max retries: 30 * 10 seconds = 5 minutes + installation time
   timeouts {
@@ -226,7 +225,7 @@ resource "kubernetes_job_v1" "create_ad_user" {
   spec {
     # Keep completed job for 1 hour for debugging
     ttl_seconds_after_finished = 3600
-    
+
     template {
       metadata {
         labels = {
@@ -237,24 +236,35 @@ resource "kubernetes_job_v1" "create_ad_user" {
       spec {
         restart_policy = "OnFailure"
 
+        # Windows nodes required for Windows containers
+        node_selector = {
+          "kubernetes.io/os" = "windows"
+        }
+
+        # Tolerate Windows node taints
+        toleration {
+          key      = "os"
+          operator = "Equal"
+          value    = "windows"
+          effect   = "NoSchedule"
+        }
+
         container {
-          name  = "create-ad-user"
-          image = "ubuntu:22.04"
-          
-          command = ["/bin/bash", "-c"]
+          name = "create-ad-user"
+          # Windows Server Core with PowerShell and AD tools
+          # ltsc2022 = Long-Term Servicing Channel 2022 (stable)
+          image = "mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2022"
+
+          # PowerShell command to run the script
+          command = ["pwsh", "-Command"]
           args = [
             <<-EOT
-              set -e
-              echo "Installing dependencies..."
-              apt-get update -qq
-              apt-get install -y -qq ldap-utils netcat-openbsd dnsutils > /dev/null 2>&1
+              Write-Host "Starting AD user creation job..."
+              Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
+              Write-Host "OS: $($PSVersionTable.OS)"
               
-              echo "Copying script to writable location..."
-              cp /scripts/set-password.sh /tmp/set-password.sh
-              chmod +x /tmp/set-password.sh
-              
-              echo "Executing AD user creation script..."
-              /tmp/set-password.sh
+              # Execute the PowerShell script from ConfigMap
+              & C:\scripts\Create-ADUser.ps1
             EOT
           ]
 
@@ -279,35 +289,18 @@ resource "kubernetes_job_v1" "create_ad_user" {
           }
 
           volume_mount {
-            name       = "ldif"
-            mount_path = "/ldif"
-          }
-
-          volume_mount {
             name       = "scripts"
-            mount_path = "/scripts"
-          }
-        }
-
-        volume {
-          name = "ldif"
-          config_map {
-            name = kubernetes_config_map_v1.create_ad_user_ldif.metadata[0].name
-            items {
-              key  = "create-user.ldif"
-              path = "create-user.ldif"
-            }
+            mount_path = "C:\\scripts"
           }
         }
 
         volume {
           name = "scripts"
           config_map {
-            name = kubernetes_config_map_v1.create_ad_user_ldif.metadata[0].name
-            default_mode = "0755"
+            name = kubernetes_config_map_v1.create_ad_user_script.metadata[0].name
             items {
-              key  = "set-password.sh"
-              path = "set-password.sh"
+              key  = "Create-ADUser.ps1"
+              path = "Create-ADUser.ps1"
             }
           }
         }

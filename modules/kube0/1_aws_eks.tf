@@ -47,12 +47,40 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
-    nodes = {
+    # Linux nodes for main workloads
+    linux_nodes = {
       instance_types      = ["${var.instance_type}"]
       ami_release_version = var.eks_node_ami_release_version
       min_size            = 1
       max_size            = 3
       desired_size        = 3
+
+      labels = {
+        workload = "linux"
+      }
+    }
+
+    # Windows nodes for AD user creation job
+    # Uses Windows Server 2022 Core (ltsc2022)
+    windows_nodes = {
+      ami_type       = "WINDOWS_CORE_2022_x86_64"
+      instance_types = ["t3.large"] # Windows requires minimum t3.large
+      min_size       = 1
+      max_size       = 2
+      desired_size   = 1
+
+      labels = {
+        workload = "windows"
+        os       = "windows"
+      }
+
+      taints = [
+        {
+          key    = "os"
+          value  = "windows"
+          effect = "NoSchedule"
+        }
+      ]
     }
   }
 }
