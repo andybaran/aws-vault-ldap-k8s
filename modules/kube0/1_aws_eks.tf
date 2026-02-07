@@ -78,7 +78,7 @@ module "eks" {
         windows = {
           key    = "os"
           value  = "windows"
-          effect = "NoSchedule"
+          effect = "NO_SCHEDULE"
         }
       }
     }
