@@ -4,15 +4,14 @@ resource "vault_ldap_secret_backend" "ad" {
   path        = var.secrets_mount_path
   description = "LDAP secrets engine for Active Directory"
 
-  # LDAP connection settings
+  # LDAP connection settings — use LDAPS (port 636) for encrypted connection.
+  # AD requires TLS for password modifications; the DC has AD CS installed
+  # which auto-enrolls a certificate enabling LDAPS.
   binddn   = var.ldap_binddn
   bindpass = var.ldap_bindpass
   url      = var.ldap_url
 
-  # AD requires TLS for password modifications (LDAP Result Code 53 otherwise).
-  # StartTLS upgrades the plain LDAP connection to TLS on port 389.
-  # insecure_tls accepts the DC's self-signed certificate (demo only).
-  starttls     = true
+  # Accept the AD CS self-signed certificate (demo only)
   insecure_tls = true
 
   # Active Directory schema

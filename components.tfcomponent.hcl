@@ -126,7 +126,7 @@ component "ldap" {
 component "vault_ldap_secrets" {
   source = "./modules/vault_ldap_secrets"
   inputs = {
-    ldap_url                = "ldap://${component.ldap.dc-priv-ip}"
+    ldap_url                = "ldaps://${component.ldap.dc-priv-ip}"
     ldap_binddn             = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
     ldap_bindpass           = component.ldap.password
     ldap_userdn             = "CN=Users,DC=mydomain,DC=local"
