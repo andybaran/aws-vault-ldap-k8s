@@ -238,10 +238,13 @@ CMEOF
 
 # Locals for AD user creation
 locals {
-  ldap_server                 = var.ldap_dc_private_ip
-  ldap_admin_dn               = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
-  vault_demo_username         = "vault-demo"
-  vault_demo_initial_password = "VaultDemo123!" # Will be rotated by Vault immediately
+  ldap_server         = var.ldap_dc_private_ip
+  ldap_admin_dn       = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
+  vault_demo_username = "vault-demo"
+  # Use the same password as the Administrator account for complexity compliance.
+  # Vault will rotate this immediately after the LDAP secrets engine is configured.
+  vault_demo_initial_password = var.ldap_admin_password
+  ad_tools_image              = "ghcr.io/andybaran/aws-vault-ldap-k8s/ad-tools:ltsc2022"
 }
 
 # Secret containing LDAP admin credentials for user creation
@@ -269,16 +272,8 @@ resource "kubernetes_config_map_v1" "create_ad_user_script" {
   data = {
     "Create-ADUser.ps1" = <<-EOT
       # PowerShell script to create vault-demo user in Active Directory
-      # Uses native AD cmdlets - simpler and more reliable than LDAP tools
+      # Uses native AD cmdlets from pre-installed RSAT-AD-PowerShell
       
-      # Install PowerShell Active Directory module
-      Write-Host "==============================================="
-      Write-Host "Installing Active Directory PowerShell module..."
-      Install-WindowsFeature -Name "RSAT-AD-PowerShell"
-      Write-Host "==============================================="
-
-
-
       $ErrorActionPreference = "Stop"
       
       $ADServer = "${local.ldap_server}"
@@ -462,8 +457,8 @@ resource "kubernetes_job_v1" "create_ad_user" {
   wait_for_completion = true
 
   timeouts {
-    create = "10m"
-    update = "10m"
+    create = "20m"
+    update = "20m"
   }
 
   spec {
@@ -494,9 +489,9 @@ resource "kubernetes_job_v1" "create_ad_user" {
 
         container {
           name  = "create-ad-user"
-          image = "mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2022"
+          image = local.ad_tools_image
 
-          command = ["pwsh", "-Command"]
+          command = ["powershell", "-ExecutionPolicy", "Bypass", "-Command"]
           args = [
             <<-EOT
               Write-Host "Starting AD user creation job..."
