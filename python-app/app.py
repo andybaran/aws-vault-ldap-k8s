@@ -334,8 +334,8 @@ HTML_TEMPLATE = """
         <!-- Header with Vault branding -->
         <div class="brand-header">
             <div class="brand-header-content">
-                <svg class="vault-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="#FFD814" d="M50 10 L90 32.5 L90 67.5 L50 90 L10 67.5 L10 32.5 Z"/>
+                <svg class="vault-logo" viewBox="0 0 51 51" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#FFD814" fill-rule="nonzero" d="M0,0 L25.4070312,51 L51,0 L0,0 Z M28.5,10.5 L31.5,10.5 L31.5,13.5 L28.5,13.5 L28.5,10.5 Z M22.5,22.5 L19.5,22.5 L19.5,19.5 L22.5,19.5 L22.5,22.5 Z M22.5,18 L19.5,18 L19.5,15 L22.5,15 L22.5,18 Z M22.5,13.5 L19.5,13.5 L19.5,10.5 L22.5,10.5 L22.5,13.5 Z M26.991018,27 L24,27 L24,24 L27,24 L26.991018,27 Z M26.991018,22.5 L24,22.5 L24,19.5 L27,19.5 L26.991018,22.5 Z M26.991018,18 L24,18 L24,15 L27,15 L26.991018,18 Z M26.991018,13.5 L24,13.5 L24,10.5 L27,10.5 L26.991018,13.5 Z M28.5,15 L31.5,15 L31.5,18 L28.5089552,18 L28.5,15 Z M28.5,22.5 L28.5,19.5 L31.5,19.5 L31.5,22.4601182 L28.5,22.5 Z"/>
                 </svg>
                 <h1>Vault LDAP Credentials</h1>
             </div>
