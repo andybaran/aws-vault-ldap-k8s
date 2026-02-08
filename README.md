@@ -70,7 +70,7 @@ This project demonstrates HashiCorp Vault's LDAP secrets engine integrated with 
 │   ├── admin_vm/                 # Admin bastion host
 │   ├── kube0/                    # EKS cluster infrastructure
 │   ├── kube1/                    # Vault cluster & VSO installation
-│   ├── kube2/                    # LDAP app deployment
+│   ├── ldap_app/                    # LDAP app deployment
 │   ├── vault/                    # Vault Helm chart deployment
 │   └── vault_ldap_secrets/       # LDAP secrets engine config
 └── python-app/                   # Python Flask application
@@ -142,7 +142,7 @@ Flask application that displays LDAP credentials:
 
 **Docker Image:** `ghcr.io/andybaran/vault-ldap-demo:v1.0.0`
 
-### 3. Vault Secrets Operator Integration (`kube2`)
+### 3. Vault Secrets Operator Integration (`ldap_app`)
 
 VSO configuration for LDAP credentials:
 - `VaultStaticSecret` CR syncs from Vault
@@ -150,7 +150,7 @@ VSO configuration for LDAP credentials:
 - Environment variables injected into pods
 - Rolling updates on credential rotation
 
-**Module:** `modules/kube2/`
+**Module:** `modules/ldap_app/`
 
 ### 4. Infrastructure Components
 
@@ -246,7 +246,7 @@ variable "static_role_username" {
 
 ### Customize Python App
 
-Modify deployment replicas in `modules/kube2/4_ldap_app.tf`:
+Modify deployment replicas in `modules/ldap_app/4_ldap_app.tf`:
 
 ```hcl
 spec {

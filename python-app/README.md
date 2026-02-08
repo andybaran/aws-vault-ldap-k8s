@@ -56,7 +56,7 @@ docker run -p 8080:8080 \
 
 ## Kubernetes Deployment
 
-This application is designed to be deployed on Kubernetes with Vault Secrets Operator managing the LDAP credentials. See the `kube2` module in the parent Terraform stack for the Kubernetes deployment configuration.
+This application is designed to be deployed on Kubernetes with Vault Secrets Operator managing the LDAP credentials. See the `ldap_app` module in the parent Terraform stack for the Kubernetes deployment configuration.
 
 ## Endpoints
 

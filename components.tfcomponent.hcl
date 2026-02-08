@@ -53,8 +53,8 @@ component "windows_config" {
 }
 
 
-component "kube2" {
-  source = "./modules/kube2"
+component "ldap_app" {
+  source = "./modules/ldap_app"
   inputs = {
     kube_namespace        = component.kube1.kube_namespace
     ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
@@ -238,13 +238,13 @@ output "admin_vm_ssh_key" {
 
 output "ldap_app_service_name" {
   description = "Kubernetes service name for the LDAP credentials application"
-  value       = component.kube2.ldap_app_service_name
+  value       = component.ldap_app.ldap_app_service_name
   type        = string
 }
 
 output "ldap_app_access_info" {
   description = "Access information for the LDAP credentials application"
-  value       = component.kube2.ldap_app_service_name != null ? "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.kube2.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname." : "LDAP app service not yet available"
+  value       = component.ldap_app.ldap_app_service_name != null ? "LDAP credentials app is exposed via LoadBalancer. Use 'kubectl get svc ${component.ldap_app.ldap_app_service_name} -n ${component.kube1.kube_namespace}' to get the external IP/hostname." : "LDAP app service not yet available"
   type        = string
 }
 
