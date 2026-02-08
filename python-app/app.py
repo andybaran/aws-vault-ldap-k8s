@@ -38,11 +38,11 @@ HTML_TEMPLATE = """
             --color-highlight: #5B3DE0;
             --color-success: #15834D;
             --color-success-surface: #DDF4E8;
-            
+
             /* Typography - HDS font stack */
             --font-family-text: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
             --font-family-code: "SF Mono", Monaco, "Cascadia Mono", "Roboto Mono", Consolas, "Courier New", monospace;
-            
+
             /* Typography scale */
             --font-size-display-500: 30px;
             --font-size-display-400: 24px;
@@ -52,13 +52,13 @@ HTML_TEMPLATE = """
             --font-size-body-100: 12px;
             --line-height-display: 1.2;
             --line-height-body: 1.5;
-            
+
             /* Font weights */
             --font-weight-regular: 400;
             --font-weight-medium: 500;
             --font-weight-semibold: 600;
             --font-weight-bold: 700;
-            
+
             /* Spacing - HDS spacing scale */
             --spacing-050: 2px;
             --spacing-100: 4px;
@@ -69,23 +69,23 @@ HTML_TEMPLATE = """
             --spacing-600: 32px;
             --spacing-700: 40px;
             --spacing-800: 48px;
-            
+
             /* Border radius */
             --radius-small: 4px;
             --radius-medium: 8px;
             --radius-large: 12px;
-            
+
             /* Elevation */
             --elevation-mid: 0 8px 16px rgba(31, 45, 61, 0.12);
             --elevation-high: 0 12px 24px rgba(31, 45, 61, 0.16);
         }
-        
+
         *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: var(--font-family-text);
             background-color: var(--color-surface-strong);
@@ -96,7 +96,7 @@ HTML_TEMPLATE = """
             padding: var(--spacing-500);
             color: var(--color-foreground-primary);
         }
-        
+
         .container {
             background: var(--color-surface-primary);
             border-radius: var(--radius-large);
@@ -105,7 +105,7 @@ HTML_TEMPLATE = """
             width: 100%;
             overflow: hidden;
         }
-        
+
         /* Header section with Vault branding */
         .brand-header {
             background: var(--color-black);
@@ -114,7 +114,7 @@ HTML_TEMPLATE = """
             text-align: center;
             border-bottom: 3px solid var(--color-vault);
         }
-        
+
         .brand-header-content {
             display: flex;
             align-items: center;
@@ -122,13 +122,13 @@ HTML_TEMPLATE = """
             gap: var(--spacing-400);
             margin-bottom: var(--spacing-400);
         }
-        
+
         .vault-logo {
             width: 48px;
             height: 48px;
             flex-shrink: 0;
         }
-        
+
         .brand-header h1 {
             font-size: var(--font-size-display-400);
             font-weight: var(--font-weight-semibold);
@@ -136,14 +136,14 @@ HTML_TEMPLATE = """
             margin: 0;
             color: var(--color-surface-primary);
         }
-        
+
         .brand-header p {
             font-size: var(--font-size-body-300);
             color: var(--color-surface-tertiary);
             margin: 0;
             line-height: var(--line-height-body);
         }
-        
+
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -158,7 +158,7 @@ HTML_TEMPLATE = """
             letter-spacing: 0.5px;
             margin-top: var(--spacing-300);
         }
-        
+
         .status-badge::before {
             content: '';
             width: 8px;
@@ -167,17 +167,17 @@ HTML_TEMPLATE = """
             background: var(--color-surface-primary);
             animation: pulse 2s ease-in-out infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        
+
         /* Main content area */
         .content {
             padding: var(--spacing-700);
         }
-        
+
         .section-title {
             font-size: var(--font-size-display-300);
             font-weight: var(--font-weight-semibold);
@@ -186,13 +186,13 @@ HTML_TEMPLATE = """
             padding-bottom: var(--spacing-300);
             border-bottom: 2px solid var(--color-surface-tertiary);
         }
-        
+
         .credentials-grid {
             display: grid;
             gap: var(--spacing-400);
             margin-bottom: var(--spacing-600);
         }
-        
+
         .credential-card {
             background: var(--color-surface-secondary);
             border: 1px solid var(--color-border-primary);
@@ -200,12 +200,12 @@ HTML_TEMPLATE = """
             padding: var(--spacing-500);
             transition: all 0.2s ease;
         }
-        
+
         .credential-card:hover {
             border-color: var(--color-border-strong);
             box-shadow: var(--elevation-mid);
         }
-        
+
         .credential-label {
             font-size: var(--font-size-body-100);
             font-weight: var(--font-weight-semibold);
@@ -217,7 +217,7 @@ HTML_TEMPLATE = """
             align-items: center;
             gap: var(--spacing-200);
         }
-        
+
         .credential-label::before {
             content: '';
             width: 4px;
@@ -225,7 +225,7 @@ HTML_TEMPLATE = """
             background: var(--color-vault);
             border-radius: 2px;
         }
-        
+
         .credential-value {
             font-family: var(--font-family-code);
             font-size: var(--font-size-body-200);
@@ -237,7 +237,62 @@ HTML_TEMPLATE = """
             word-break: break-all;
             line-height: 1.6;
         }
-        
+
+        /* Countdown timer */
+        .countdown-card {
+            background: var(--color-surface-secondary);
+            border: 1px solid var(--color-border-primary);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-500);
+            margin-bottom: var(--spacing-600);
+            text-align: center;
+        }
+
+        .countdown-label {
+            font-size: var(--font-size-body-100);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-foreground-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-300);
+        }
+
+        .countdown-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-400);
+        }
+
+        .countdown-value {
+            font-family: var(--font-family-code);
+            font-size: var(--font-size-display-500);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-foreground-strong);
+            min-width: 80px;
+        }
+
+        .countdown-unit {
+            font-size: var(--font-size-body-200);
+            color: var(--color-foreground-faint);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .countdown-bar-track {
+            height: 6px;
+            background: var(--color-surface-tertiary);
+            border-radius: 3px;
+            margin-top: var(--spacing-400);
+            overflow: hidden;
+        }
+
+        .countdown-bar-fill {
+            height: 100%;
+            background: var(--color-vault);
+            border-radius: 3px;
+            transition: width 1s linear;
+        }
+
         /* Info section */
         .info-section {
             background: var(--color-success-surface);
@@ -246,7 +301,7 @@ HTML_TEMPLATE = """
             padding: var(--spacing-500);
             margin-bottom: var(--spacing-500);
         }
-        
+
         .info-section-title {
             font-size: var(--font-size-body-300);
             font-weight: var(--font-weight-semibold);
@@ -256,19 +311,14 @@ HTML_TEMPLATE = """
             align-items: center;
             gap: var(--spacing-200);
         }
-        
-        .info-section-title::before {
-            content: '🔐';
-            font-size: 20px;
-        }
-        
+
         .info-section p {
             font-size: var(--font-size-body-200);
             color: var(--color-foreground-primary);
             line-height: var(--line-height-body);
             margin: 0;
         }
-        
+
         /* Metadata section */
         .metadata {
             display: flex;
@@ -280,47 +330,47 @@ HTML_TEMPLATE = """
             font-size: var(--font-size-body-200);
             color: var(--color-foreground-faint);
         }
-        
+
         .metadata strong {
             color: var(--color-foreground-strong);
             font-weight: var(--font-weight-medium);
         }
-        
+
         .powered-by {
             display: flex;
             align-items: center;
             gap: var(--spacing-200);
         }
-        
+
         .powered-by a {
             color: var(--color-highlight);
             text-decoration: none;
             font-weight: var(--font-weight-medium);
             transition: color 0.2s ease;
         }
-        
+
         .powered-by a:hover {
             color: var(--color-foreground-strong);
             text-decoration: underline;
         }
-        
+
         @media (max-width: 640px) {
             body {
                 padding: var(--spacing-300);
             }
-            
+
             .brand-header {
                 padding: var(--spacing-500);
             }
-            
+
             .brand-header h1 {
                 font-size: var(--font-size-display-300);
             }
-            
+
             .content {
                 padding: var(--spacing-500);
             }
-            
+
             .metadata {
                 flex-direction: column;
                 gap: var(--spacing-300);
@@ -342,55 +392,87 @@ HTML_TEMPLATE = """
             <p>Automatically rotated credentials managed by HashiCorp Vault</p>
             <div class="status-badge">Live Demo</div>
         </div>
-        
+
         <!-- Main content -->
         <div class="content">
             <h2 class="section-title">Active Credentials</h2>
-            
+
+            <!-- Rotation countdown timer -->
+            <div class="countdown-card" role="timer" aria-label="Time until next credential rotation">
+                <div class="countdown-label">Next rotation in</div>
+                <div class="countdown-display">
+                    <span class="countdown-value" id="countdown-seconds">--</span>
+                    <span class="countdown-unit">seconds</span>
+                </div>
+                <div class="countdown-bar-track">
+                    <div class="countdown-bar-fill" id="countdown-bar" style="width: 100%"></div>
+                </div>
+            </div>
+
             <div class="credentials-grid">
                 <div class="credential-card">
                     <div class="credential-label">Username</div>
                     <div class="credential-value">{{ username }}</div>
                 </div>
-                
+
                 <div class="credential-card">
                     <div class="credential-label">Password</div>
                     <div class="credential-value">{{ password }}</div>
                 </div>
-                
-                <div class="credential-card">
-                    <div class="credential-label">Distinguished Name (DN)</div>
-                    <div class="credential-value">{{ dn }}</div>
-                </div>
-                
+
                 <div class="credential-card">
                     <div class="credential-label">Last Vault Rotation</div>
                     <div class="credential-value">{{ last_vault_password }}</div>
                 </div>
             </div>
-            
+
             <div class="info-section">
                 <div class="info-section-title">How It Works</div>
                 <p>
-                    These credentials are automatically rotated by HashiCorp Vault's LDAP secrets engine every 24 hours. 
-                    The Vault Secrets Operator synchronizes the rotated credentials to Kubernetes secrets, which are 
-                    then injected into this application as environment variables. When credentials rotate, the application 
+                    These credentials are automatically rotated by HashiCorp Vault's LDAP secrets engine every {{ rotation_period }} seconds.
+                    The Vault Secrets Operator synchronizes the rotated credentials to Kubernetes secrets, which are
+                    then injected into this application as environment variables. When credentials rotate, the application
                     automatically restarts with the new values.
                 </p>
             </div>
         </div>
-        
+
         <!-- Footer metadata -->
         <div class="metadata">
             <div><strong>Page loaded:</strong> {{ current_time }}</div>
             <div class="powered-by">
-                Powered by 
+                Powered by
                 <a href="https://developer.hashicorp.com/vault" target="_blank">HashiCorp Vault</a>
                 +
                 <a href="https://developer.hashicorp.com/vault/docs/platform/k8s/vso" target="_blank">VSO</a>
             </div>
         </div>
     </div>
+
+    <script>
+        (function() {
+            var rotationPeriod = {{ rotation_period }};
+            var ttlAtLoad = {{ rotation_ttl }};
+            var pageLoadedAt = Date.now();
+            var countdownEl = document.getElementById('countdown-seconds');
+            var barEl = document.getElementById('countdown-bar');
+
+            function getRemaining() {
+                var elapsed = (Date.now() - pageLoadedAt) / 1000;
+                return Math.max(0, Math.ceil(ttlAtLoad - elapsed));
+            }
+
+            function update() {
+                var remaining = getRemaining();
+                countdownEl.textContent = remaining;
+                var pct = rotationPeriod > 0 ? (remaining / rotationPeriod) * 100 : 0;
+                barEl.style.width = pct + '%';
+            }
+
+            update();
+            setInterval(update, 1000);
+        })();
+    </script>
 </body>
 </html>
 """
@@ -402,8 +484,9 @@ def index():
     credentials = {
         'username': os.getenv('LDAP_USERNAME', 'Not configured'),
         'password': os.getenv('LDAP_PASSWORD', 'Not configured'),
-        'dn': os.getenv('LDAP_DN', 'Not configured'),
         'last_vault_password': os.getenv('LDAP_LAST_VAULT_PASSWORD', 'Not configured'),
+        'rotation_period': int(os.getenv('ROTATION_PERIOD', '10')),
+        'rotation_ttl': int(os.getenv('ROTATION_TTL', '0')),
         'current_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
     }
     return render_template_string(HTML_TEMPLATE, **credentials)
