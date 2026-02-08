@@ -281,6 +281,9 @@ resource "kubernetes_config_map_v1" "create_ad_user_script" {
 
 # Job 2: Create AD user
 # This job depends on Windows IPAM being enabled (Job 1)
+# The job is replaced whenever the DC credentials secret changes (e.g., DC rebuild
+# produces a new IP or password), ensuring the vault-demo user is always created
+# on the current domain controller.
 resource "kubernetes_job_v1" "create_ad_user" {
   # Wait for Windows IPAM to be enabled first
   depends_on = [kubernetes_job_v1.windows_k8s_config]
@@ -295,6 +298,10 @@ resource "kubernetes_job_v1" "create_ad_user" {
   timeouts {
     create = "20m"
     update = "20m"
+  }
+
+  lifecycle {
+    replace_triggered_by = [kubernetes_secret_v1.ldap_admin_creds]
   }
 
   spec {
