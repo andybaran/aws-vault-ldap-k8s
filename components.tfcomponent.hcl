@@ -60,7 +60,6 @@ component "ldap_app" {
     ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
     ldap_static_role_name = component.vault_ldap_secrets.static_role_name
     vso_vault_auth_name   = component.vault_cluster.vso_vault_auth_name
-    rotation_period       = component.vault_ldap_secrets.static_role_rotation_period
   }
   providers = {
     kubernetes = provider.kubernetes.this

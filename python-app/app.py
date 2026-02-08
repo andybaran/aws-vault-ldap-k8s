@@ -452,17 +452,14 @@ HTML_TEMPLATE = """
     <script>
         (function() {
             var rotationPeriod = {{ rotation_period }};
-            var lastRotation = "{{ last_vault_password }}";
+            var ttlAtLoad = {{ rotation_ttl }};
+            var pageLoadedAt = Date.now();
             var countdownEl = document.getElementById('countdown-seconds');
             var barEl = document.getElementById('countdown-bar');
 
             function getRemaining() {
-                // Parse the last rotation timestamp from Vault
-                var rotatedAt = new Date(lastRotation).getTime();
-                if (isNaN(rotatedAt)) return 0;
-                var nextRotation = rotatedAt + (rotationPeriod * 1000);
-                var remaining = Math.max(0, Math.ceil((nextRotation - Date.now()) / 1000));
-                return remaining;
+                var elapsed = (Date.now() - pageLoadedAt) / 1000;
+                return Math.max(0, Math.ceil(ttlAtLoad - elapsed));
             }
 
             function update() {
@@ -489,6 +486,7 @@ def index():
         'password': os.getenv('LDAP_PASSWORD', 'Not configured'),
         'last_vault_password': os.getenv('LDAP_LAST_VAULT_PASSWORD', 'Not configured'),
         'rotation_period': int(os.getenv('ROTATION_PERIOD', '10')),
+        'rotation_ttl': int(os.getenv('ROTATION_TTL', '0')),
         'current_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
     }
     return render_template_string(HTML_TEMPLATE, **credentials)
