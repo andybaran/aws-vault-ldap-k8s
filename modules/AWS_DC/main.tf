@@ -98,18 +98,32 @@ resource "aws_instance" "domain_controller" {
 
   user_data = <<EOF
                 <powershell>
-                  $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
-                  Add-WindowsFeature -name ad-domain-services -IncludeManagementTools
-                  Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
-                  %{if var.only_ntlmv2~}
-                    Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"  -Name LMCompatibilityLevel -Value 5 
-                  %{endif~}
-                  %{if var.only_kerberos~}
-                    Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictSendingNTLMTraffic -Value 2 
-                    Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictReceivingNTLMTraffic -Value 2 
-                  %{endif~}    
-                  Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true
+                  # Check if this is a post-promotion reboot (AD DS is running)
+                  $ADDSRunning = Get-Service NTDS -ErrorAction SilentlyContinue
+                  if ($ADDSRunning -and $ADDSRunning.Status -eq 'Running') {
+                    # Post-promotion boot: install AD CS to enable LDAPS on port 636
+                    $AdcsFeature = Get-WindowsFeature -Name ADCS-Cert-Authority
+                    if (-not $AdcsFeature.Installed) {
+                      Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools
+                      Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -Force
+                      Restart-Service NTDS -Force
+                    }
+                  } else {
+                    # First boot: promote to domain controller
+                    $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
+                    Add-WindowsFeature -name ad-domain-services -IncludeManagementTools
+                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
+                    %{if var.only_ntlmv2~}
+                      Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"  -Name LMCompatibilityLevel -Value 5 
+                    %{endif~}
+                    %{if var.only_kerberos~}
+                      Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictSendingNTLMTraffic -Value 2 
+                      Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictReceivingNTLMTraffic -Value 2 
+                    %{endif~}
+                    Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true
+                  }
                 </powershell>
+                <persist>true</persist>
               EOF
 
   metadata_options {
