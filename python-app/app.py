@@ -416,5 +416,5 @@ def health():
 
 
 if __name__ == '__main__':
-    # Run on port 8080 to match existing Go app configuration
+    # Run on port 8080
     app.run(host='0.0.0.0', port=8080, debug=False)

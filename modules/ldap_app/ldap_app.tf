@@ -218,3 +218,8 @@ output "ldap_app_service_type" {
   description = "Type of the LDAP credentials app service"
   value       = kubernetes_service_v1.ldap_app.spec[0].type
 }
+
+output "ldap_app_url" {
+  description = "URL of the LDAP credentials app"
+  value       = "http://${kubernetes_service_v1.ldap_app.status[0].load_balancer[0].ingress[0].hostname}"
+}

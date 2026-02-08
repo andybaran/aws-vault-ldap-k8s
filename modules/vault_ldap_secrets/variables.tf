@@ -48,7 +48,7 @@ variable "static_role_username" {
 variable "static_role_rotation_period" {
   description = "Password rotation period in seconds (default: 24 hours)"
   type        = number
-  default     = 86400
+  default     = 300
 }
 
 variable "kubernetes_host" {
