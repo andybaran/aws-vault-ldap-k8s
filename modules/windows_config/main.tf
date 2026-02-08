@@ -291,6 +291,12 @@ resource "kubernetes_job_v1" "create_ad_user" {
   metadata {
     name      = "create-ad-user"
     namespace = var.kube_namespace
+    annotations = {
+      # Force job re-creation when the DC is rebuilt — the private IP changes
+      # on each new instance, so a change here triggers Terraform to destroy
+      # the old completed job and create a new one.
+      "demo/dc-private-ip" = var.ldap_dc_private_ip
+    }
   }
 
   wait_for_completion = true
@@ -298,10 +304,6 @@ resource "kubernetes_job_v1" "create_ad_user" {
   timeouts {
     create = "20m"
     update = "20m"
-  }
-
-  lifecycle {
-    replace_triggered_by = [kubernetes_secret_v1.ldap_admin_creds]
   }
 
   spec {
