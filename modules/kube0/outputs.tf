@@ -24,7 +24,7 @@ output "kube_cluster_certificate_authority_data" {
 
 output "eks_cluster_name" {
   description = "The name of the EKS cluster."
-  value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name}"
+  value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region us-east-2"
   sensitive   = false
 }
 
