@@ -22,3 +22,8 @@ output "static_role_policy_name" {
   description = "The name of the policy for reading static role credentials"
   value       = vault_policy.ldap_static_read.name
 }
+
+output "static_role_rotation_period" {
+  description = "The rotation period in seconds for the LDAP static role"
+  value       = vault_ldap_secret_backend_static_role.service_account.rotation_period
+}

@@ -21,3 +21,9 @@ variable "vso_vault_auth_name" {
   type        = string
   default     = "default"
 }
+
+variable "rotation_period" {
+  description = "LDAP static role rotation period in seconds"
+  type        = number
+  default     = 10
+}

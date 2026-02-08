@@ -149,16 +149,6 @@ resource "kubernetes_deployment_v1" "ldap_app" {
           }
 
           env {
-            name = "LDAP_DN"
-            value_from {
-              secret_key_ref {
-                name = local.ldap_app_secret_name
-                key  = "dn"
-              }
-            }
-          }
-
-          env {
             name = "LDAP_LAST_VAULT_PASSWORD"
             value_from {
               secret_key_ref {
@@ -166,6 +156,11 @@ resource "kubernetes_deployment_v1" "ldap_app" {
                 key  = "last_vault_rotation"
               }
             }
+          }
+
+          env {
+            name  = "ROTATION_PERIOD"
+            value = tostring(var.rotation_period)
           }
         }
       }
