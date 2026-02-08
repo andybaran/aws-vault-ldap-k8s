@@ -67,15 +67,6 @@ component "ldap_app" {
   }
 }
 
-removed {
-  source = "./modules/kube2"
-  from = component.kube2 
-  providers = {
-    kubernetes = provider.kubernetes.this
-    time       = provider.time.this
-  }
-}
-
 
 component "vault_cluster" {
   source = "./modules/vault"
