@@ -28,8 +28,9 @@ resource "kubernetes_manifest" "vault_ldap_secret" {
       # (LDAP static roles) that have no lease TTL in the Vault response
       allowStaticCreds = true
       # refreshAfter tells VSO how often to re-sync the secret since
-      # static credentials don't include a lease duration
-      refreshAfter   = "8s"
+      # static credentials don't include a lease duration.
+      # Set to ~80% of the rotation period so VSO picks up changes promptly.
+      refreshAfter   = "${floor(var.static_role_rotation_period * 0.8)}s"
       renewalPercent = 67
       vaultAuthRef   = var.vso_vault_auth_name
       rolloutRestartTargets = [

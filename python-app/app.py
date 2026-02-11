@@ -354,6 +354,37 @@ HTML_TEMPLATE = """
             text-decoration: underline;
         }
 
+        /* Refresh button - hidden until countdown expires + 5s */
+        .refresh-btn {
+            display: none;
+            margin-top: var(--spacing-400);
+            padding: var(--spacing-300) var(--spacing-600);
+            background: var(--color-vault);
+            color: var(--color-black);
+            border: none;
+            border-radius: var(--radius-medium);
+            font-family: var(--font-family-text);
+            font-size: var(--font-size-body-300);
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #e6c200;
+            box-shadow: var(--elevation-mid);
+        }
+
+        .refresh-btn.visible {
+            display: inline-block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 640px) {
             body {
                 padding: var(--spacing-300);
@@ -407,6 +438,7 @@ HTML_TEMPLATE = """
                 <div class="countdown-bar-track">
                     <div class="countdown-bar-fill" id="countdown-bar" style="width: 100%"></div>
                 </div>
+                <button class="refresh-btn" id="refresh-btn" onclick="location.reload()">↻ Refresh Credentials</button>
             </div>
 
             <div class="credentials-grid">
@@ -456,6 +488,8 @@ HTML_TEMPLATE = """
             var pageLoadedAt = Date.now();
             var countdownEl = document.getElementById('countdown-seconds');
             var barEl = document.getElementById('countdown-bar');
+            var refreshBtn = document.getElementById('refresh-btn');
+            var buttonShown = false;
 
             function getRemaining() {
                 var elapsed = (Date.now() - pageLoadedAt) / 1000;
@@ -467,6 +501,14 @@ HTML_TEMPLATE = """
                 countdownEl.textContent = remaining;
                 var pct = rotationPeriod > 0 ? (remaining / rotationPeriod) * 100 : 0;
                 barEl.style.width = pct + '%';
+
+                // Show refresh button 5 seconds after countdown reaches 0
+                if (!buttonShown && remaining === 0) {
+                    buttonShown = true;
+                    setTimeout(function() {
+                        refreshBtn.classList.add('visible');
+                    }, 5000);
+                }
             }
 
             update();
@@ -485,7 +527,7 @@ def index():
         'username': os.getenv('LDAP_USERNAME', 'Not configured'),
         'password': os.getenv('LDAP_PASSWORD', 'Not configured'),
         'last_vault_password': os.getenv('LDAP_LAST_VAULT_PASSWORD', 'Not configured'),
-        'rotation_period': int(os.getenv('ROTATION_PERIOD', '10')),
+        'rotation_period': int(os.getenv('ROTATION_PERIOD', '30')),
         'rotation_ttl': int(os.getenv('ROTATION_TTL', '0')),
         'current_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
     }

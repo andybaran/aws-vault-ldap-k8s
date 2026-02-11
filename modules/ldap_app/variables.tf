@@ -21,3 +21,9 @@ variable "vso_vault_auth_name" {
   type        = string
   default     = "default"
 }
+
+variable "static_role_rotation_period" {
+  description = "The LDAP static role rotation period in seconds. Used to derive the VSO refreshAfter interval."
+  type        = number
+  default     = 30
+}
