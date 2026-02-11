@@ -82,29 +82,6 @@ component "vault_cluster" {
 
 }
 
-component "admin_vm" {
-  source = "./modules/admin_vm"
-  inputs = {
-    region                = var.region
-    vpc_id                = component.kube0.vpc_id
-    subnet_id             = component.kube0.first_private_subnet_id
-    instance_type         = var.instance_type
-    allowlist_ip          = "66.190.197.168/32"
-    environment           = var.customer_name
-    eks_cluster_name      = component.kube0.eks_cluster_name
-    vault_namespace       = component.vault_cluster.vault_namespace
-    vault_service_name    = component.vault_cluster.vault_service_name
-    shared_internal_sg_id = component.kube0.shared_internal_sg_id
-    prefix                = component.kube0.resources_prefix
-    key_name              = component.ldap.aws_keypair_name
-    ssh_private_key       = component.ldap.private-key
-  }
-  providers = {
-    aws = provider.aws.this
-  }
-
-}
-
 component "ldap" {
   source = "./modules/AWS_DC"
   inputs = {
@@ -204,37 +181,6 @@ output "vault_ldap_secrets_path" {
   description = "Mount path for the Vault LDAP secrets engine"
   value       = component.vault_ldap_secrets.ldap_secrets_mount_path
   type        = string
-}
-
-output "admin_vm_public_ip" {
-  description = "Public IP address of the admin VM (via Elastic IP)"
-  value       = component.admin_vm.admin_vm_public_ip
-  type        = string
-}
-
-output "admin_vm_public_dns" {
-  description = "Public DNS hostname of the admin VM (via Elastic IP)"
-  value       = component.admin_vm.admin_vm_public_dns
-  type        = string
-}
-
-output "admin_vm_private_ip" {
-  description = "Private IP address of the admin VM"
-  value       = component.admin_vm.admin_vm_private_ip
-  type        = string
-}
-
-output "admin_vm_ssh_command" {
-  description = "SSH command to connect to the admin VM"
-  value       = component.admin_vm.ssh_connection_command
-  type        = string
-}
-
-output "admin_vm_ssh_key" {
-  description = "Private SSH key for the admin VM"
-  value       = component.admin_vm.ssh_private_key
-  type        = string
-  sensitive   = false
 }
 
 output "ldap_app_service_name" {
