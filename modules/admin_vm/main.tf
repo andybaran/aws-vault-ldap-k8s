@@ -2,3 +2,12 @@
 # can reference this source while Stacks destroys the admin_vm state.
 # This file can be deleted once the destroy is complete and the removed block
 # is no longer needed.
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 6.0"
+    }
+  }
+}
