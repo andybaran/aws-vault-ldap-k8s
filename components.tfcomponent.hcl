@@ -4,6 +4,10 @@ removed {
   source = "./modules/admin_vm"
 
   from = component.admin_vm
+
+  providers = {
+    aws = provider.aws.this
+  }
 }
 
 component "kube0" {
