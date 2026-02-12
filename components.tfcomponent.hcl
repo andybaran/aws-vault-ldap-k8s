@@ -1,15 +1,4 @@
 
-# admin_vm was removed — this block tells Stacks to destroy its state
-removed {
-  source = "./modules/admin_vm"
-
-  from = component.admin_vm
-
-  providers = {
-    aws = provider.aws.this
-  }
-}
-
 component "kube0" {
   source = "./modules/kube0"
   inputs = {
