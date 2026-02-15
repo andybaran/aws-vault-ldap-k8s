@@ -68,16 +68,10 @@ variable "allowlist_ip" {
   default     = "0.0.0.0/0"
 }
 
-variable "vault_image_repository" {
-  description = "Docker image repository for Vault Enterprise"
+variable "vault_image" {
+  description = "Docker image for Vault Enterprise (repository:tag)"
   type        = string
-  default     = "hashicorp/vault-enterprise"
-}
-
-variable "vault_image_tag" {
-  description = "Docker image tag for Vault Enterprise"
-  type        = string
-  default     = "1.21.2-ent"
+  default     = "hashicorp/vault-enterprise:1.21.2-ent"
 }
 
 variable "ldap_app_image" {
