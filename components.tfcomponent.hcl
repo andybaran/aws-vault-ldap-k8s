@@ -82,6 +82,7 @@ component "ldap" {
     aws    = provider.aws.this
     tls    = provider.tls.this
     random = provider.random.this
+    time   = provider.time.this
   }
 
 }
