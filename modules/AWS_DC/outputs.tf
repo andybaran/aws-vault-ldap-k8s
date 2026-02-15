@@ -28,7 +28,7 @@ output "aws_keypair_name" {
   value = aws_key_pair.rdp-key.key_name
 }
 
-output "test_users" {
+output "static_roles" {
   description = "Test service account usernames and initial passwords for AD integration tests"
   value = {
     for name, pw in random_password.test_user_password : name => {
