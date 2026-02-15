@@ -46,7 +46,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 ---
 
-## Codebase Snapshot (last updated: 2026-02-15, post PR #147)
+## Codebase Snapshot (last updated: 2026-02-15, post PR #150)
 
 ### Repository
 
@@ -58,7 +58,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 | File | Purpose |
 |------|---------|
-| `components.tfcomponent.hcl` | Defines 6 stack components, their inputs/outputs, provider bindings, and dependency wiring |
+| `components.tfcomponent.hcl` | Defines 5 stack components, their inputs/outputs, provider bindings, and dependency wiring |
 | `deployments.tfdeploy.hcl` | Single `development` deployment targeting `us-east-2`, references HCP Terraform varsets `varset-oUu39eyQUoDbmxE1` (aws_creds) and `varset-fMrcJCnqUd6q4D9C` (vault_license) |
 | `providers.tfcomponent.hcl` | All provider definitions with pinned versions |
 | `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip) |
@@ -84,13 +84,11 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 kube0 (VPC, EKS, security groups)
   ├──► kube1 (nginx ingress, vault SA, vault license secret)
   │      └──► vault_cluster (Vault Helm HA Raft, init job, VSO, VaultConnection, VaultAuth)
-  │             ├──► vault_ldap_secrets (LDAP engine, static role, K8s auth backend)
-  │             │      └──► ldap_app (VaultDynamicSecret CR, Deployment, Service)
+  │             ├──► vault_ldap_secrets (LDAP engine, static roles via for_each, K8s auth backend)
+  │             │      └──► ldap_app (VaultDynamicSecret CR for svc-rotate-a, Deployment, Service)
   │             └──► [vault provider configured from vault_cluster outputs]
-  ├──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS)
-  │      └──► windows_config (Windows IPAM, create vault-demo AD user via K8s job)
-  │             └──► vault_ldap_secrets (depends on ad_user_job_completed)
-  └──► windows_config (uses kube0 + kube1 + ldap outputs)
+  └──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS, test accounts in user_data)
+         └──► vault_ldap_secrets (receives static_roles map output)
 ```
 
 ### Module Details
@@ -101,7 +99,7 @@ kube0 (VPC, EKS, security groups)
 **Files:**
 - `1_locals.tf` — Naming locals (`customer_id`, `demo_id`, `resources_prefix`), AZ selection (filters AZs supporting the requested instance type, picks up to 3), `random_string.identifier`
 - `1_aws_network.tf` — VPC module (`terraform-aws-modules/vpc/aws` v6.5.1), CIDR `10.0.0.0/16`, single NAT gateway, public/private subnets with ELB tags
-- `1_aws_eks.tf` — EKS module (`terraform-aws-modules/eks/aws` v21.11.0), K8s 1.34, public endpoint, `enable_cluster_creator_admin_permissions=true`, addons (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni, aws-ebs-csi-driver), two managed node groups: `linux_nodes` (1-3, desired 3) and `windows_nodes` (ami_type `WINDOWS_CORE_2022_x86_64`, t3.large, 1-2, desired 1, tainted `os=windows:NoSchedule`). EBS CSI driver IAM role with IRSA.
+- `1_aws_eks.tf` — EKS module (`terraform-aws-modules/eks/aws` v21.11.0), K8s 1.34, public endpoint, `enable_cluster_creator_admin_permissions=true`, addons (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni, aws-ebs-csi-driver), single managed node group: `linux_nodes` (1-3, desired 3). EBS CSI driver IAM role with IRSA.
 - `2_security_groups.tf` — `shared_internal` SG: allows all inbound from VPC CIDR, all outbound
 - `variables.tf` — `region` (default "us-east-2"), `user_email`, `instance_type` (default `t3.medium`), `customer_name`, `eks_node_ami_release_version`
 - `outputs.tf` — `vpc_id`, `demo_id`, `cluster_endpoint`, `kube_cluster_certificate_authority_data`, `eks_cluster_name` (outputs a `kubectl update-kubeconfig` command using `var.region`), `eks_cluster_id`, `eks_cluster_auth` (sensitive token), `first_private_subnet_id`, `first_public_subnet_id`, `shared_internal_sg_id`, `resources_prefix`
@@ -133,28 +131,20 @@ kube0 (VPC, EKS, security groups)
 **Files:**
 - `main.tf` — Windows Server 2022 EC2 (`data.aws_ami.windows_2022`), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 4 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a, svc-rotate-b, svc-single, svc-lib). Elastic IP attached.
 - `variables.tf` — `allowlist_ip`, `prefix` (default "boundary-rdp"), `aws_key_pair_name`, `ami` (unused default), `domain_controller_instance_type`, `root_block_device_size` (128GB), `active_directory_domain` (mydomain.local), `active_directory_netbios_name` (mydomain), `only_ntlmv2`, `only_kerberos`, `vpc_id`, `subnet_id`, `shared_internal_sg_id`
-- `outputs.tf` — `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password` (decrypted admin pw, nonsensitive), `aws_keypair_name`, `test_users` (map of test account details from `random_password`)
+- `outputs.tf` — `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password` (decrypted admin pw, nonsensitive), `aws_keypair_name`, `static_roles` (map of test account username/password/dn from `random_password`)
 - `README.md` — Documents the DC setup and PowerShell user_data
 
-#### `modules/windows_config/` — Windows IPAM + AD User Creation
-**Providers:** kubernetes
-
-**Files:**
-- `main.tf` — Two K8s jobs:
-  1. `windows_k8s_config` (Linux container): Enables Windows IPAM via ConfigMap `amazon-vpc-cni`, sets env on aws-node DaemonSet, waits for VPC CNI rollout, waits for Windows nodes to join and be Ready (up to 10 min), waits 60s for IP allocation
-  2. `create_ad_user` (Windows container `ghcr.io/andybaran/aws-vault-ldap-k8s/ad-tools:ltsc2022`): Creates `vault-demo` AD user with PowerShell script from ConfigMap. Uses initial password = admin password. Node selector `kubernetes.io/os=windows`, tolerates `os=windows:NoSchedule` taint. Annotation `demo/dc-private-ip` forces re-creation when DC rebuilds.
-- `scripts/Create-ADUser.ps1` — PowerShell: waits for AD on port 389, imports AD module, authenticates as admin, deletes existing vault-demo user if present, creates fresh vault-demo user, verifies and tests auth
-- `variables.tf` — `demo_id`, `cluster_endpoint`, `kube_cluster_certificate_authority_data`, `kube_namespace`, `ldap_dc_private_ip`, `ldap_admin_password`
-- `outputs.tf` — `windows_ipam_enabled`, `ad_user_job_status` (used as dependency signal), `vault_demo_initial_password`
+#### `modules/windows_config/` — **UNUSED** (retained for reference)
+**Not referenced by any component.** Previously handled Windows IPAM enablement and AD user creation via K8s jobs. AD user creation is now handled by the DC's user_data script in `modules/AWS_DC/main.tf`. Can be deleted in a cleanup pass.
 
 #### `modules/vault_ldap_secrets/` — Vault LDAP Secrets Engine
 **Providers:** vault
 
 **Files:**
-- `main.tf` — `vault_ldap_secret_backend.ad`: mounted at `var.secrets_mount_path` (default "ldap"), LDAPS URL, `insecure_tls=true`, schema `ad`, `userattr=cn` (not UPN), `skip_static_role_import_rotation=true`. Static role `demo-service-account` for user `vault-demo`, rotation period configurable (default 300s). Policy `ldap-static-read` granting read on `static-cred/<role>` and list on `static-role/*`.
+- `main.tf` — `vault_ldap_secret_backend.ad`: mounted at `var.secrets_mount_path` (default "ldap"), LDAPS URL, `insecure_tls=true`, schema `ad`, `userattr=cn` (not UPN), `skip_static_role_import_rotation=true`. `vault_ldap_secret_backend_static_role.roles` with `for_each` over `var.static_roles` map — creates one Vault static role per AD test account. Policy `ldap-static-read` granting read on `static-cred/*` and list on `static-role/*`.
 - `kubernetes_auth.tf` — `vault_auth_backend` type kubernetes at path "kubernetes", config with EKS host/CA cert, role `vso-role` bound to SA `vso-auth` in `kube_namespace`, token TTL 600s, policies `[ldap-static-read]`, audience `vault`
-- `variables.tf` — `ldap_url`, `ldap_binddn`, `ldap_bindpass` (sensitive), `ldap_userdn`, `secrets_mount_path`, `active_directory_domain`, `static_role_name` (default "demo-service-account"), `static_role_username` (default "vault-demo"), `static_role_rotation_period` (default 300), `kubernetes_host`, `kubernetes_ca_cert`, `kube_namespace`, `ad_user_job_completed`
-- `outputs.tf` — `ldap_secrets_mount_path`, `ldap_secrets_mount_accessor`, `static_role_name`, `static_role_credentials_path`, `static_role_policy_name`
+- `variables.tf` — `ldap_url`, `ldap_binddn`, `ldap_bindpass` (sensitive), `ldap_userdn`, `secrets_mount_path`, `active_directory_domain`, `static_roles` (map of objects with username/password/dn), `static_role_rotation_period` (default 300), `kubernetes_host`, `kubernetes_ca_cert`, `kube_namespace`
+- `outputs.tf` — `ldap_secrets_mount_path`, `ldap_secrets_mount_accessor`, `static_role_names` (map of role keys to role names), `static_role_policy_name`
 
 #### `modules/ldap_app/` — Python App Deployment + VSO Integration
 **Providers:** kubernetes, time
@@ -204,9 +194,10 @@ Flask app (`app.py`) displaying LDAP credentials:
 
 - **VPC CIDR:** 10.0.0.0/16
 - **AD Domain:** mydomain.local (NetBIOS: mydomain)
-- **AD User managed by Vault:** vault-demo
+- **AD Users managed by Vault:** svc-rotate-a, svc-rotate-b, svc-single, svc-lib (created by DC user_data, static roles created via for_each)
+- **App displays:** svc-rotate-a (single account displayed by ldap_app)
 - **LDAP bind DN:** CN=Administrator,CN=Users,DC=mydomain,DC=local
-- **Vault static role name:** demo-service-account
+- **Vault static role names:** match AD usernames (svc-rotate-a, svc-rotate-b, svc-single, svc-lib)
 - **VSO auth role:** vso-role (bound to SA `vso-auth`)
 - **VSO VaultAuth/VaultConnection names:** "default"
 - **Kubernetes auth path in Vault:** "kubernetes"
@@ -219,6 +210,10 @@ Flask app (`app.py`) displaying LDAP credentials:
 ### Known Issues / Notes
 
 1. **Vault root token exposed as nonsensitive** — `vault_root_token` output uses `nonsensitive()` wrapper. Acceptable for demo but noted.
+
+#### Resolved (PR #150)
+- ~~Windows EKS node group and windows_config component~~ — Removed; AD users now created by DC user_data script
+- ~~Single hardcoded static role~~ — Refactored to `for_each` over `static_roles` map from `ldap` component
 
 #### Resolved (PR #147)
 - ~~Missing `random_password` resource in AWS_DC~~ — Added `random_password.test_user_password` with `for_each`
