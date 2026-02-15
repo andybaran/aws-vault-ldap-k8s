@@ -46,7 +46,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 ---
 
-## Codebase Snapshot (last updated: 2026-02-15)
+## Codebase Snapshot (last updated: 2026-02-15, post PR #147)
 
 ### Repository
 
@@ -61,7 +61,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 | `components.tfcomponent.hcl` | Defines 6 stack components, their inputs/outputs, provider bindings, and dependency wiring |
 | `deployments.tfdeploy.hcl` | Single `development` deployment targeting `us-east-2`, references HCP Terraform varsets `varset-oUu39eyQUoDbmxE1` (aws_creds) and `varset-fMrcJCnqUd6q4D9C` (vault_license) |
 | `providers.tfcomponent.hcl` | All provider definitions with pinned versions |
-| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version) |
+| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip) |
 
 ### Provider Versions (pinned in `providers.tfcomponent.hcl`)
 
@@ -103,10 +103,10 @@ kube0 (VPC, EKS, security groups)
 - `1_aws_network.tf` — VPC module (`terraform-aws-modules/vpc/aws` v6.5.1), CIDR `10.0.0.0/16`, single NAT gateway, public/private subnets with ELB tags
 - `1_aws_eks.tf` — EKS module (`terraform-aws-modules/eks/aws` v21.11.0), K8s 1.34, public endpoint, `enable_cluster_creator_admin_permissions=true`, addons (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni, aws-ebs-csi-driver), two managed node groups: `linux_nodes` (1-3, desired 3) and `windows_nodes` (ami_type `WINDOWS_CORE_2022_x86_64`, t3.large, 1-2, desired 1, tainted `os=windows:NoSchedule`). EBS CSI driver IAM role with IRSA.
 - `2_security_groups.tf` — `shared_internal` SG: allows all inbound from VPC CIDR, all outbound
-- `variables.tf` — `user_email`, `instance_type` (default `t3.medium`), `customer_name`, `eks_node_ami_release_version`
-- `outputs.tf` — `vpc_id`, `demo_id`, `cluster_endpoint`, `kube_cluster_certificate_authority_data`, `eks_cluster_name` (outputs a `kubectl update-kubeconfig` command string), `eks_cluster_id`, `eks_cluster_auth` (sensitive token), `first_private_subnet_id`, `first_public_subnet_id`, `shared_internal_sg_id`, `resources_prefix`
+- `variables.tf` — `region` (default "us-east-2"), `user_email`, `instance_type` (default `t3.medium`), `customer_name`, `eks_node_ami_release_version`
+- `outputs.tf` — `vpc_id`, `demo_id`, `cluster_endpoint`, `kube_cluster_certificate_authority_data`, `eks_cluster_name` (outputs a `kubectl update-kubeconfig` command using `var.region`), `eks_cluster_id`, `eks_cluster_auth` (sensitive token), `first_private_subnet_id`, `first_public_subnet_id`, `shared_internal_sg_id`, `resources_prefix`
 
-**Note:** `kube0/variables.tf` does NOT declare a `region` variable, but the component passes `var.region` — the `region` variable is used by the `aws` provider directly in the stack-level provider config.
+**Note:** `kube0/variables.tf` declares a `region` variable (default `us-east-2`) which is passed from the component. It is used in the `eks_cluster_name` output.
 
 #### `modules/kube1/` — Kubernetes Base Tools
 **Providers:** aws, kubernetes, helm, time
@@ -121,7 +121,7 @@ kube0 (VPC, EKS, security groups)
 
 **Files:**
 - `vault.tf` — `helm_release.vault_cluster` (Vault Helm chart v0.31.0): HA Raft with 3 nodes, `hashicorp/vault-enterprise:1.21.2-ent`, TLS disabled, EBS storage via custom StorageClass, internal NLB for server, internal NLB for UI, CSI enabled, injector disabled
-- `vault_init.tf` — Init K8s job: downloads kubectl/jq, waits for vault-0, runs `vault operator init` (5 shares, 3 threshold), stores init JSON in `vault-init-data` K8s secret, unseals all 3 nodes, joins vault-1/vault-2 to Raft. Also handles re-unseal on already-initialized clusters. Uses RBAC (secret-writer SA, Role, RoleBinding). **NOTE:** References `data.kubernetes_secret_v1.vault_init_keys` with name `vault-init-keys` but the init job writes to `vault-init-data` — potential mismatch (currently unused data source).
+- `vault_init.tf` — Init K8s job: downloads kubectl/jq, waits for vault-0, runs `vault operator init` (5 shares, 3 threshold), stores init JSON in `vault-init-data` K8s secret, unseals all 3 nodes, joins vault-1/vault-2 to Raft. Also handles re-unseal on already-initialized clusters. Uses RBAC (secret-writer SA, Role, RoleBinding).
 - `vso.tf` — VSO Helm chart v0.9.0, creates `VaultConnection` (name: `default`, uses Vault LB hostname), `VaultAuth` (name: `default`, K8s auth method, role `vso-role`, SA `vso-auth`, audience `vault`), `vso-auth` ServiceAccount with `system:auth-delegator` ClusterRoleBinding
 - `storage.tf` — `kubernetes_storage_class_v1.vault_storage`: EBS CSI gp3, encrypted, WaitForFirstConsumer
 - `variables.tf` — `kube_namespace`
@@ -131,7 +131,7 @@ kube0 (VPC, EKS, security groups)
 **Providers:** aws, tls, random
 
 **Files:**
-- `main.tf` — Windows Server 2022 EC2 (`data.aws_ami.windows_2022`), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a, svc-rotate-b, svc-single, svc-lib) using `random_password.test_user_password`. Elastic IP attached. **NOTE:** `random_password.test_user_password` resource is referenced but NOT defined in the visible files — this will cause a plan error and needs to be added.
+- `main.tf` — Windows Server 2022 EC2 (`data.aws_ami.windows_2022`), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 4 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a, svc-rotate-b, svc-single, svc-lib). Elastic IP attached.
 - `variables.tf` — `allowlist_ip`, `prefix` (default "boundary-rdp"), `aws_key_pair_name`, `ami` (unused default), `domain_controller_instance_type`, `root_block_device_size` (128GB), `active_directory_domain` (mydomain.local), `active_directory_netbios_name` (mydomain), `only_ntlmv2`, `only_kerberos`, `vpc_id`, `subnet_id`, `shared_internal_sg_id`
 - `outputs.tf` — `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password` (decrypted admin pw, nonsensitive), `aws_keypair_name`, `test_users` (map of test account details from `random_password`)
 - `README.md` — Documents the DC setup and PowerShell user_data
@@ -218,12 +218,13 @@ Flask app (`app.py`) displaying LDAP credentials:
 
 ### Known Issues / Notes
 
-1. **Missing `random_password` resource in `modules/AWS_DC/main.tf`** — The user_data script and outputs reference `random_password.test_user_password` for test service accounts (svc-rotate-a, svc-rotate-b, svc-single, svc-lib), but the `random_password` resource block is not present. This will cause a plan error.
-2. **Stale data source in `modules/vault/vault_init.tf`** — `data.kubernetes_secret_v1.vault_init_keys` references secret name `vault-init-keys` but the init job writes to `vault-init-data`. The outputs correctly use `vault_init_data`. The stale data source is unused but should be cleaned up.
-3. **`kube0` missing `region` variable** — The `kube0` module does not declare a `region` variable, but the component definition does not pass `region` to kube0 either (it is not needed there). However, the `variables.tf` in `kube0` does not declare `region` — the region comes from the AWS provider config at the stack level.
-4. **Vault root token exposed as nonsensitive** — `vault_root_token` output uses `nonsensitive()` wrapper. Acceptable for demo but noted.
-5. **`region` is used in `1_aws_eks.tf`** — The `eks_cluster_name` output hardcodes `--region us-east-2` — should parameterize.
-6. **Allowlist IP is hardcoded** — `components.tfcomponent.hcl` hardcodes `allowlist_ip = "66.190.197.168/32"` — should be a variable.
+1. **Vault root token exposed as nonsensitive** — `vault_root_token` output uses `nonsensitive()` wrapper. Acceptable for demo but noted.
+
+#### Resolved (PR #147)
+- ~~Missing `random_password` resource in AWS_DC~~ — Added `random_password.test_user_password` with `for_each`
+- ~~Stale `vault_init_keys` data source~~ — Removed from `vault_init.tf`
+- ~~`kube0` missing `region` variable / hardcoded region in output~~ — Added `region` var, parameterized `eks_cluster_name`
+- ~~Hardcoded `allowlist_ip`~~ — Extracted to stack variable `allowlist_ip`, value moved to `deployments.tfdeploy.hcl`
 
 ## Resources to Use for Reference
 
