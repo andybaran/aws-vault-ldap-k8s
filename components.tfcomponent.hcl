@@ -36,29 +36,13 @@ component "kube1" {
 
 }
 
-component "windows_config" {
-  source = "./modules/windows_config"
-  inputs = {
-    demo_id                                 = component.kube0.demo_id
-    cluster_endpoint                        = component.kube0.cluster_endpoint
-    kube_cluster_certificate_authority_data = component.kube0.kube_cluster_certificate_authority_data
-    kube_namespace                          = component.kube1.kube_namespace
-    ldap_dc_private_ip                      = component.ldap.dc-priv-ip
-    ldap_admin_password                     = component.ldap.password
-  }
-  providers = {
-    kubernetes = provider.kubernetes.this
-  }
-
-}
-
 
 component "ldap_app" {
   source = "./modules/ldap_app"
   inputs = {
     kube_namespace        = component.kube1.kube_namespace
     ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
-    ldap_static_role_name = component.vault_ldap_secrets.static_role_name
+    ldap_static_role_name = component.vault_ldap_secrets.static_role_names["svc-rotate-a"]
     vso_vault_auth_name   = component.vault_cluster.vso_vault_auth_name
     static_role_rotation_period = 30
   }
@@ -113,8 +97,7 @@ component "vault_ldap_secrets" {
     kubernetes_host         = component.kube0.cluster_endpoint
     kubernetes_ca_cert      = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace          = component.kube1.kube_namespace
-    # This dependency ensures the AD user creation job completes before Vault configures the LDAP secrets engine
-    ad_user_job_completed   = component.windows_config.ad_user_job_status
+    static_roles            = component.ldap.static_roles
     static_role_rotation_period = 30
   }
   providers = {
