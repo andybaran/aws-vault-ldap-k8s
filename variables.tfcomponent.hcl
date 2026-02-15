@@ -85,3 +85,9 @@ variable "ldap_app_image" {
   type        = string
   default     = "ghcr.io/andybaran/vault-ldap-demo:latest"
 }
+
+variable "ldap_app_account_name" {
+  description = "AD service account name to display in the LDAP app (must exist in static_roles)"
+  type        = string
+  default     = "svc-rotate-a"
+}
