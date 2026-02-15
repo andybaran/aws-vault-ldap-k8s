@@ -86,7 +86,7 @@ component "ldap" {
   source = "./modules/AWS_DC"
   inputs = {
     region                          = var.region
-    allowlist_ip                    = "66.190.197.168/32"
+    allowlist_ip                    = var.allowlist_ip
     vpc_id                          = component.kube0.vpc_id
     subnet_id                       = component.kube0.first_public_subnet_id
     domain_controller_instance_type = var.instance_type
