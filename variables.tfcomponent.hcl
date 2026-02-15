@@ -61,3 +61,9 @@ variable "eks_node_ami_release_version" {
   description = "EKS managed node group AMI release version"
   type        = string
 }
+
+variable "allowlist_ip" {
+  description = "IP CIDR to allow RDP/Kerberos access to the domain controller (e.g., '1.2.3.4/32')"
+  type        = string
+  default     = "0.0.0.0/0"
+}

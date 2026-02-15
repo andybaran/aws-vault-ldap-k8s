@@ -64,6 +64,18 @@ resource "random_string" "DSRMPassword" {
 
 
 
+// Generate random passwords for test service accounts created during post-promotion boot
+resource "random_password" "test_user_password" {
+  for_each = toset(["svc-rotate-a", "svc-rotate-b", "svc-single", "svc-lib"])
+
+  length           = 16
+  override_special = "!@#"
+  min_lower        = 1
+  min_upper        = 1
+  min_numeric      = 1
+  min_special      = 1
+}
+
 // Deploy a Windows EC2 instance using the previously created, aws_security_group's, aws_key_pair and use a userdata script to create a windows domain controller
 data "aws_ami" "windows_2022" {
   most_recent = true

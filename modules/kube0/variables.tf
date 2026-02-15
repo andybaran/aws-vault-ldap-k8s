@@ -1,3 +1,9 @@
+variable "region" {
+  type        = string
+  description = "The AWS region for this deployment"
+  default     = "us-east-2"
+}
+
 variable "user_email" {
   type        = string
   description = "e-mail address"
