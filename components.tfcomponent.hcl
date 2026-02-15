@@ -57,9 +57,8 @@ component "ldap_app" {
 component "vault_cluster" {
   source = "./modules/vault"
   inputs = {
-    kube_namespace         = component.kube1.kube_namespace
-    vault_image_repository = var.vault_image_repository
-    vault_image_tag        = var.vault_image_tag
+    kube_namespace = component.kube1.kube_namespace
+    vault_image    = var.vault_image
   }
   providers = {
     helm       = provider.helm.this

@@ -40,11 +40,11 @@ resource "helm_release" "vault_cluster" {
     },
     {
       name  = "server.image.repository"
-      value = var.vault_image_repository
+      value = local.vault_repository
     },
     {
       name  = "server.image.tag"
-      value = var.vault_image_tag
+      value = local.vault_tag
     },
     {
       name  = "server.enterpriseLicense.secretName"
