@@ -58,7 +58,7 @@ component "vault_cluster" {
   source = "./modules/vault"
   inputs = {
     kube_namespace = component.kube1.kube_namespace
-    vault_image    = var.vault_image
+    vault_image    = "ghcr.io/andybaran/vault-with-openldap-plugin:dual-account-rotation"
   }
   providers = {
     helm       = provider.helm.this
