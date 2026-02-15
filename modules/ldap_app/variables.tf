@@ -27,3 +27,9 @@ variable "static_role_rotation_period" {
   type        = number
   default     = 30
 }
+
+variable "ldap_app_image" {
+  description = "Docker image for the LDAP credentials display application"
+  type        = string
+  default     = "ghcr.io/andybaran/vault-ldap-demo:latest"
+}

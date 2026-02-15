@@ -46,7 +46,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 ---
 
-## Codebase Snapshot (last updated: 2026-02-15, post PR #147)
+## Codebase Snapshot (last updated: 2026-02-15, post PR #151)
 
 ### Repository
 
@@ -61,7 +61,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 | `components.tfcomponent.hcl` | Defines 6 stack components, their inputs/outputs, provider bindings, and dependency wiring |
 | `deployments.tfdeploy.hcl` | Single `development` deployment targeting `us-east-2`, references HCP Terraform varsets `varset-oUu39eyQUoDbmxE1` (aws_creds) and `varset-fMrcJCnqUd6q4D9C` (vault_license) |
 | `providers.tfcomponent.hcl` | All provider definitions with pinned versions |
-| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip) |
+| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip, vault_image_repository, vault_image_tag, ldap_app_image) |
 
 ### Provider Versions (pinned in `providers.tfcomponent.hcl`)
 
@@ -124,7 +124,7 @@ kube0 (VPC, EKS, security groups)
 - `vault_init.tf` — Init K8s job: downloads kubectl/jq, waits for vault-0, runs `vault operator init` (5 shares, 3 threshold), stores init JSON in `vault-init-data` K8s secret, unseals all 3 nodes, joins vault-1/vault-2 to Raft. Also handles re-unseal on already-initialized clusters. Uses RBAC (secret-writer SA, Role, RoleBinding).
 - `vso.tf` — VSO Helm chart v0.9.0, creates `VaultConnection` (name: `default`, uses Vault LB hostname), `VaultAuth` (name: `default`, K8s auth method, role `vso-role`, SA `vso-auth`, audience `vault`), `vso-auth` ServiceAccount with `system:auth-delegator` ClusterRoleBinding
 - `storage.tf` — `kubernetes_storage_class_v1.vault_storage`: EBS CSI gp3, encrypted, WaitForFirstConsumer
-- `variables.tf` — `kube_namespace`
+- `variables.tf` — `kube_namespace`, `vault_image_repository` (default `hashicorp/vault-enterprise`), `vault_image_tag` (default `1.21.2-ent`)
 - `outputs.tf` — Reads `vault-init-data` secret, parses JSON for `root_token` and `unseal_keys_b64`. Outputs: `vault_unseal_keys` (sensitive), `vault_root_token` (nonsensitive!), `vault_namespace`, `vault_service_name` ("vault"), `vault_initialized`, `vault_loadbalancer_hostname` (http://LB:8200), `vault_ui_loadbalancer_hostname` (http://LB:8200), `vso_vault_auth_name` ("default")
 
 #### `modules/AWS_DC/` — Active Directory Domain Controller
@@ -161,7 +161,7 @@ kube0 (VPC, EKS, security groups)
 
 **Files:**
 - `ldap_app.tf` — `VaultDynamicSecret` CR: reads from `<mount>/static-cred/<role>`, `allowStaticCreds=true`, `refreshAfter` at 80% of rotation period, creates K8s secret `ldap-credentials`, triggers rolling restart of deployment. `kubernetes_deployment_v1.ldap_app`: 2 replicas, image `ghcr.io/andybaran/vault-ldap-demo:latest`, port 8080, env vars from secret (LDAP_USERNAME, LDAP_PASSWORD, LDAP_LAST_VAULT_PASSWORD, ROTATION_PERIOD, ROTATION_TTL), liveness/readiness probes on `/health`. `kubernetes_service_v1`: LoadBalancer, port 80→8080. Outputs: `ldap_app_service_name`, `ldap_app_service_type`, `ldap_app_url`
-- `variables.tf` — `kube_namespace`, `ldap_mount_path`, `ldap_static_role_name`, `vso_vault_auth_name`, `static_role_rotation_period`
+- `variables.tf` — `kube_namespace`, `ldap_mount_path`, `ldap_static_role_name`, `vso_vault_auth_name`, `static_role_rotation_period`, `ldap_app_image` (default `ghcr.io/andybaran/vault-ldap-demo:latest`)
 
 ### Python Web Application (`python-app/`)
 

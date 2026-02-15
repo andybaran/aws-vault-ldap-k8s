@@ -45,6 +45,7 @@ component "ldap_app" {
     ldap_static_role_name = component.vault_ldap_secrets.static_role_names["svc-rotate-a"]
     vso_vault_auth_name   = component.vault_cluster.vso_vault_auth_name
     static_role_rotation_period = 30
+    ldap_app_image              = var.ldap_app_image
   }
   providers = {
     kubernetes = provider.kubernetes.this
@@ -56,8 +57,9 @@ component "ldap_app" {
 component "vault_cluster" {
   source = "./modules/vault"
   inputs = {
-    kube_namespace = component.kube1.kube_namespace
-
+    kube_namespace         = component.kube1.kube_namespace
+    vault_image_repository = var.vault_image_repository
+    vault_image_tag        = var.vault_image_tag
   }
   providers = {
     helm       = provider.helm.this
