@@ -27,3 +27,15 @@ output "password" {
 output "aws_keypair_name" {
   value = aws_key_pair.rdp-key.key_name
 }
+
+output "test_users" {
+  description = "Test service account usernames and initial passwords for AD integration tests"
+  value = {
+    for name, pw in random_password.test_user_password : name => {
+      username = name
+      password = nonsensitive(pw.result)
+      dn       = "CN=${name},CN=Users,DC=${join(",DC=", split(".", var.active_directory_domain))}"
+    }
+  }
+  sensitive = false
+}

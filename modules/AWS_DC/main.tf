@@ -120,18 +120,33 @@ resource "aws_instance" "domain_controller" {
                       Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -Force
                       Restart-Service NTDS -Force
                     }
+
+                    # Create test service accounts for integration testing
+                    Import-Module ActiveDirectory
+                    $testUsers = @{
+                      "svc-rotate-a" = "${random_password.test_user_password["svc-rotate-a"].result}"
+                      "svc-rotate-b" = "${random_password.test_user_password["svc-rotate-b"].result}"
+                      "svc-single"   = "${random_password.test_user_password["svc-single"].result}"
+                      "svc-lib"      = "${random_password.test_user_password["svc-lib"].result}"
+                    }
+                    foreach ($user in $testUsers.GetEnumerator()) {
+                      if (-not (Get-ADUser -Filter "sAMAccountName -eq '$($user.Key)'" -ErrorAction SilentlyContinue)) {
+                        $secPw = ConvertTo-SecureString $user.Value -AsPlainText -Force
+                        New-ADUser -Name $user.Key `
+                          -SamAccountName $user.Key `
+                          -UserPrincipalName "$($user.Key)@${var.active_directory_domain}" `
+                          -AccountPassword $secPw `
+                          -Enabled $true `
+                          -PasswordNeverExpires $true `
+                          -CannotChangePassword $false `
+                          -Path "CN=Users,DC=${join(",DC=", split(".", var.active_directory_domain))}"
+                      }
+                    }
                   } else {
                     # First boot: promote to domain controller
                     $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
                     Add-WindowsFeature -name ad-domain-services -IncludeManagementTools
                     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
-                    %{if var.only_ntlmv2~}
-                      Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"  -Name LMCompatibilityLevel -Value 5 
-                    %{endif~}
-                    %{if var.only_kerberos~}
-                      Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictSendingNTLMTraffic -Value 2 
-                      Set-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"  -Name RestrictReceivingNTLMTraffic -Value 2 
-                    %{endif~}
                     Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true
                   }
                 </powershell>
