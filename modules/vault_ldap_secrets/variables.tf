@@ -33,16 +33,13 @@ variable "active_directory_domain" {
   default     = "mydomain.local"
 }
 
-variable "static_role_name" {
-  description = "Name of the static role for password rotation"
-  type        = string
-  default     = "demo-service-account"
-}
-
-variable "static_role_username" {
-  description = "AD username for the static role (without domain)"
-  type        = string
-  default     = "vault-demo"
+variable "static_roles" {
+  description = "Map of static roles to create. Each key is the role name, value has username, password, and dn."
+  type = map(object({
+    username = string
+    password = string
+    dn       = string
+  }))
 }
 
 variable "static_role_rotation_period" {
@@ -63,10 +60,5 @@ variable "kubernetes_ca_cert" {
 
 variable "kube_namespace" {
   description = "Kubernetes namespace where VSO is deployed"
-  type        = string
-}
-
-variable "ad_user_job_completed" {
-  description = "Dependency marker to ensure AD user creation job completes before Vault LDAP secrets engine configuration"
   type        = string
 }

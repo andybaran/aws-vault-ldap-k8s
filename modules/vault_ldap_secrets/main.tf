@@ -30,29 +30,30 @@ resource "vault_ldap_secret_backend" "ad" {
   skip_static_role_import_rotation = true
 }
 
-# Static role for managing password rotation of an existing AD account
+# Static roles for managing password rotation of existing AD accounts.
+# One Vault static role is created per entry in var.static_roles.
 # Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/ldap_secret_backend_static_role
-resource "vault_ldap_secret_backend_static_role" "service_account" {
-  mount     = vault_ldap_secret_backend.ad.path
-  role_name = var.static_role_name
-  username  = var.static_role_username
+resource "vault_ldap_secret_backend_static_role" "roles" {
+  for_each = var.static_roles
 
-  # Rotate password every 24 hours (86400 seconds)
+  mount     = vault_ldap_secret_backend.ad.path
+  role_name = each.key
+  username  = each.value.username
+
   rotation_period = var.static_role_rotation_period
 
   # Allow initial rotation to import the password from AD
-  # This is required for Vault to manage and return the credentials
   skip_import_rotation = false
 }
 
-# Policy for reading LDAP static credentials
+# Policy for reading LDAP static credentials — grants access to all static roles
 # Reference: https://registry.terraform.io/providers/hashicorp/vault/latest/docs/resources/policy
 resource "vault_policy" "ldap_static_read" {
   name = "${var.secrets_mount_path}-static-read"
 
   policy = <<-EOT
-    # Allow reading static role credentials
-    path "${vault_ldap_secret_backend.ad.path}/static-cred/${vault_ldap_secret_backend_static_role.service_account.role_name}" {
+    # Allow reading any static role credentials
+    path "${vault_ldap_secret_backend.ad.path}/static-cred/*" {
       capabilities = ["read"]
     }
 

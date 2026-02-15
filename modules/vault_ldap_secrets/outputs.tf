@@ -8,14 +8,9 @@ output "ldap_secrets_mount_accessor" {
   value       = vault_ldap_secret_backend.ad.accessor
 }
 
-output "static_role_name" {
-  description = "The name of the LDAP static role"
-  value       = vault_ldap_secret_backend_static_role.service_account.role_name
-}
-
-output "static_role_credentials_path" {
-  description = "The full path to read static role credentials from Vault"
-  value       = "${vault_ldap_secret_backend.ad.path}/static-cred/${vault_ldap_secret_backend_static_role.service_account.role_name}"
+output "static_role_names" {
+  description = "Map of all LDAP static role names"
+  value       = { for k, v in vault_ldap_secret_backend_static_role.roles : k => v.role_name }
 }
 
 output "static_role_policy_name" {

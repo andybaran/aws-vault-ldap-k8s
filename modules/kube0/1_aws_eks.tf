@@ -24,12 +24,6 @@ module "eks" {
   # access to the IAM role that creates the cluster. No need for explicit
   # access_entries for the same role - that would cause a duplicate conflict.
 
-  # Additional IAM policies for cluster role
-  # AmazonEKSVPCResourceController is required for Windows support
-  iam_role_additional_policies = {
-    AmazonEKSVPCResourceController = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
-  }
-
   kms_key_administrators = [
     local.extra_doormat_role,
     data.aws_iam_session_context.current.issuer_arn,
@@ -46,9 +40,6 @@ module "eks" {
     }
     vpc-cni = {
       before_compute = true
-      # Note: Windows IPAM configuration via add-on configuration_values is not supported
-      # Windows networking may auto-configure when Windows nodes join, or may require
-      # manual post-deployment configuration if pods fail to get IPs
     }
     aws-ebs-csi-driver = {
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
@@ -70,28 +61,6 @@ module "eks" {
       }
     }
 
-    # Windows nodes for AD user creation job
-    # Uses Windows Server 2022 Core (ltsc2022)
-    windows_nodes = {
-      ami_type       = "WINDOWS_CORE_2022_x86_64"
-      instance_types = ["t3.large"] # Windows requires minimum t3.large
-      min_size       = 1
-      max_size       = 2
-      desired_size   = 1
-
-      labels = {
-        workload = "windows"
-        os       = "windows"
-      }
-
-      taints = {
-        windows = {
-          key    = "os"
-          value  = "windows"
-          effect = "NO_SCHEDULE"
-        }
-      }
-    }
   }
 }
 
