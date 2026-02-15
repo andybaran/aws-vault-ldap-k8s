@@ -172,6 +172,15 @@ resource "aws_eip" "domain_controller_eip" {
   depends_on = [aws_instance.domain_controller]
 }
 
+# Wait for DC reboot after promotion
+# The DC reboots after Install-ADDSForest, then installs AD CS and creates
+# test users on the second boot. This takes approximately 10 minutes.
+resource "time_sleep" "wait_for_dc_reboot" {
+  depends_on = [aws_eip.domain_controller_eip]
+
+  create_duration = "10m"
+}
+
 locals {
   password = rsadecrypt(aws_instance.domain_controller.password_data, tls_private_key.rsa-4096-key.private_key_pem)
 }
