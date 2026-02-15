@@ -25,9 +25,9 @@ resource "vault_ldap_secret_backend" "ad" {
   # User search base DN
   userdn = var.ldap_userdn
 
-  # Do not rotate the administrator password on initial setup
-  # Since we're using the main administrator account, we skip rotation
-  skip_static_role_import_rotation = true
+  # Enable rotation on import to populate last_vault_rotation timestamp
+  # This ensures VSO receives valid static-creds metadata
+  skip_static_role_import_rotation = false
 }
 
 # Static roles for managing password rotation of existing AD accounts.
