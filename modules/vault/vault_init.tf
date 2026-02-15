@@ -84,7 +84,7 @@ resource "kubernetes_job_v1" "vault_init" {
 
         container {
           name    = "vault-init"
-          image   = "hashicorp/vault-enterprise:1.21.2-ent"
+          image   = "${var.vault_image_repository}:${var.vault_image_tag}"
           command = ["/bin/sh", "-c"]
           args = [<<-EOT
             # Set Vault address to local pod

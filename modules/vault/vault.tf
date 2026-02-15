@@ -40,11 +40,11 @@ resource "helm_release" "vault_cluster" {
     },
     {
       name  = "server.image.repository"
-      value = "hashicorp/vault-enterprise"
+      value = var.vault_image_repository
     },
     {
       name  = "server.image.tag"
-      value = "1.21.2-ent"
+      value = var.vault_image_tag
     },
     {
       name  = "server.enterpriseLicense.secretName"

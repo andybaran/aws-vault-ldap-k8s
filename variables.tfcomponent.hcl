@@ -67,3 +67,21 @@ variable "allowlist_ip" {
   type        = string
   default     = "0.0.0.0/0"
 }
+
+variable "vault_image_repository" {
+  description = "Docker image repository for Vault Enterprise"
+  type        = string
+  default     = "hashicorp/vault-enterprise"
+}
+
+variable "vault_image_tag" {
+  description = "Docker image tag for Vault Enterprise"
+  type        = string
+  default     = "1.21.2-ent"
+}
+
+variable "ldap_app_image" {
+  description = "Docker image for the LDAP credentials display application"
+  type        = string
+  default     = "ghcr.io/andybaran/vault-ldap-demo:latest"
+}
