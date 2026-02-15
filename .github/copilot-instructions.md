@@ -61,7 +61,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 | `components.tfcomponent.hcl` | Defines 6 stack components, their inputs/outputs, provider bindings, and dependency wiring |
 | `deployments.tfdeploy.hcl` | Single `development` deployment targeting `us-east-2`, references HCP Terraform varsets `varset-oUu39eyQUoDbmxE1` (aws_creds) and `varset-fMrcJCnqUd6q4D9C` (vault_license) |
 | `providers.tfcomponent.hcl` | All provider definitions with pinned versions |
-| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip, vault_image_repository, vault_image_tag, ldap_app_image) |
+| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip, vault_image_repository, vault_image_tag, ldap_app_image, ldap_app_account_name) |
 
 ### Provider Versions (pinned in `providers.tfcomponent.hcl`)
 
@@ -204,9 +204,10 @@ Flask app (`app.py`) displaying LDAP credentials:
 
 - **VPC CIDR:** 10.0.0.0/16
 - **AD Domain:** mydomain.local (NetBIOS: mydomain)
-- **AD User managed by Vault:** vault-demo
+- **AD Users managed by Vault:** svc-rotate-a, svc-rotate-b, svc-single, svc-lib (created by DC user_data)
+- **App displays account:** svc-rotate-a by default (configurable via `ldap_app_account_name` stack variable)
 - **LDAP bind DN:** CN=Administrator,CN=Users,DC=mydomain,DC=local
-- **Vault static role name:** demo-service-account
+- **Vault static role names:** match AD usernames (svc-rotate-a, svc-rotate-b, svc-single, svc-lib)
 - **VSO auth role:** vso-role (bound to SA `vso-auth`)
 - **VSO VaultAuth/VaultConnection names:** "default"
 - **Kubernetes auth path in Vault:** "kubernetes"
