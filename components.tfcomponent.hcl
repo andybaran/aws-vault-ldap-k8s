@@ -37,23 +37,6 @@ component "kube1" {
 }
 
 
-component "ldap_app" {
-  source = "./modules/ldap_app"
-  inputs = {
-    kube_namespace        = component.kube1.kube_namespace
-    ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
-    ldap_static_role_name = component.vault_ldap_secrets.static_role_names[var.ldap_app_account_name]
-    vso_vault_auth_name   = component.vault_cluster.vso_vault_auth_name
-    static_role_rotation_period = 30
-    ldap_app_image              = var.ldap_app_image
-  }
-  providers = {
-    kubernetes = provider.kubernetes.this
-    time       = provider.time.this
-  }
-}
-
-
 component "vault_cluster" {
   source = "./modules/vault"
   inputs = {
@@ -104,6 +87,22 @@ component "vault_ldap_secrets" {
   }
   providers = {
     vault = provider.vault.this
+  }
+}
+
+component "ldap_app" {
+  source = "./modules/ldap_app"
+  inputs = {
+    kube_namespace        = component.kube1.kube_namespace
+    ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
+    ldap_static_role_name = component.vault_ldap_secrets.static_role_names[var.ldap_app_account_name]
+    vso_vault_auth_name   = component.vault_cluster.vso_vault_auth_name
+    static_role_rotation_period = 30
+    ldap_app_image              = var.ldap_app_image
+  }
+  providers = {
+    kubernetes = provider.kubernetes.this
+    time       = provider.time.this
   }
 }
 
