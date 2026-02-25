@@ -40,8 +40,9 @@ component "kube1" {
 component "vault_cluster" {
   source = "./modules/vault"
   inputs = {
-    kube_namespace = component.kube1.kube_namespace
-    vault_image    = "ghcr.io/andybaran/vault-with-openldap-plugin:dual-account-rotation"
+    kube_namespace    = component.kube1.kube_namespace
+    vault_image       = var.ldap_dual_account ? "ghcr.io/andybaran/vault-with-openldap-plugin:dual-account-rotation" : var.vault_image
+    ldap_dual_account = var.ldap_dual_account
   }
   providers = {
     helm       = provider.helm.this
@@ -73,17 +74,19 @@ component "ldap" {
 component "vault_ldap_secrets" {
   source = "./modules/vault_ldap_secrets"
   inputs = {
-    ldap_url                = "ldaps://${component.ldap.dc-priv-ip}"
-    ldap_binddn             = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
-    ldap_bindpass           = component.ldap.password
-    ldap_userdn             = "CN=Users,DC=mydomain,DC=local"
-    secrets_mount_path      = "ldap"
-    active_directory_domain = "mydomain.local"
-    kubernetes_host         = component.kube0.cluster_endpoint
-    kubernetes_ca_cert      = component.kube0.kube_cluster_certificate_authority_data
-    kube_namespace          = component.kube1.kube_namespace
-    static_roles            = component.ldap.static_roles
+    ldap_url                    = "ldaps://${component.ldap.dc-priv-ip}"
+    ldap_binddn                 = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
+    ldap_bindpass               = component.ldap.password
+    ldap_userdn                 = "CN=Users,DC=mydomain,DC=local"
+    secrets_mount_path          = "ldap"
+    active_directory_domain     = "mydomain.local"
+    kubernetes_host             = component.kube0.cluster_endpoint
+    kubernetes_ca_cert          = component.kube0.kube_cluster_certificate_authority_data
+    kube_namespace              = component.kube1.kube_namespace
+    static_roles                = component.ldap.static_roles
     static_role_rotation_period = 30
+    ldap_dual_account           = var.ldap_dual_account
+    grace_period                = var.grace_period
   }
   providers = {
     vault = provider.vault.this
@@ -93,12 +96,14 @@ component "vault_ldap_secrets" {
 component "ldap_app" {
   source = "./modules/ldap_app"
   inputs = {
-    kube_namespace        = component.kube1.kube_namespace
-    ldap_mount_path       = component.vault_ldap_secrets.ldap_secrets_mount_path
-    ldap_static_role_name = var.ldap_app_account_name
-    vso_vault_auth_name   = component.vault_cluster.vso_vault_auth_name
+    kube_namespace              = component.kube1.kube_namespace
+    ldap_mount_path             = component.vault_ldap_secrets.ldap_secrets_mount_path
+    ldap_static_role_name       = var.ldap_dual_account ? "dual-rotation-demo" : var.ldap_app_account_name
+    vso_vault_auth_name         = component.vault_cluster.vso_vault_auth_name
     static_role_rotation_period = 30
     ldap_app_image              = var.ldap_app_image
+    ldap_dual_account           = var.ldap_dual_account
+    grace_period                = var.grace_period
   }
   providers = {
     kubernetes = provider.kubernetes.this

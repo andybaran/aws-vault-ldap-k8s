@@ -85,3 +85,15 @@ variable "ldap_app_account_name" {
   type        = string
   default     = "svc-rotate-a"
 }
+
+variable "ldap_dual_account" {
+  description = "Enable dual-account (blue/green) LDAP rotation using a custom Vault plugin. When true, uses a custom Vault image with the plugin and configures dual-account static roles."
+  type        = bool
+  default     = false
+}
+
+variable "grace_period" {
+  description = "Grace period in seconds for dual-account rotation (both credentials valid during this window). Must be less than rotation period."
+  type        = number
+  default     = 15
+}
