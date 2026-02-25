@@ -5,22 +5,30 @@ resource "helm_release" "vault_cluster" {
   chart      = "vault"
   namespace  = var.kube_namespace
   version    = "0.31.0"
-  #   values = [<<-EOT
-  # global:
-  # server:
-  #   ha:
-  #     enabled: true
-  #   raft:
-  #     enabled: true
-  #   image:
-  #     repository: hashicorp/vault-enterprise
-  #     tag: 1.21.2-ent 
-  #   enterpriseLicense:
-  #     secretName: "vault-license"
-  # ui:
-  #   enabled: true
-  # EOT
-  # ]
+
+  values = var.ldap_dual_account ? [<<-YAML
+server:
+  ha:
+    raft:
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+
+        storage "raft" {
+          path = "/vault/data"
+        }
+
+        service_registration "kubernetes" {}
+
+        plugin_directory = "/vault/plugins"
+YAML
+  ] : []
+
   set = [
     {
       name  = "global.tlsDisable"
