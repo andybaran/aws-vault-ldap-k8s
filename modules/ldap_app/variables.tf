@@ -33,3 +33,15 @@ variable "ldap_app_image" {
   type        = string
   default     = "ghcr.io/andybaran/vault-ldap-demo:latest"
 }
+
+variable "ldap_dual_account" {
+  description = "Enable dual-account (blue/green) LDAP rotation display in the app"
+  type        = bool
+  default     = false
+}
+
+variable "grace_period" {
+  description = "Grace period in seconds for dual-account rotation"
+  type        = number
+  default     = 15
+}
