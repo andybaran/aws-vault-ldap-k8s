@@ -184,6 +184,97 @@ resource "kubernetes_deployment_v1" "ldap_app" {
               }
             }
           }
+
+          # Dual-account mode environment variables
+          # These are only injected when ldap_dual_account is true.
+          # Fields like standby_username may not exist in the K8s secret
+          # during "active" state (only present during grace_period),
+          # so optional = true prevents pod startup failures.
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name  = "DUAL_ACCOUNT_MODE"
+              value = "true"
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name = "ACTIVE_ACCOUNT"
+              value_from {
+                secret_key_ref {
+                  name     = local.ldap_app_secret_name
+                  key      = "active_account"
+                  optional = true
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name = "ROTATION_STATE"
+              value_from {
+                secret_key_ref {
+                  name     = local.ldap_app_secret_name
+                  key      = "rotation_state"
+                  optional = true
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name = "STANDBY_USERNAME"
+              value_from {
+                secret_key_ref {
+                  name     = local.ldap_app_secret_name
+                  key      = "standby_username"
+                  optional = true
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name = "STANDBY_PASSWORD"
+              value_from {
+                secret_key_ref {
+                  name     = local.ldap_app_secret_name
+                  key      = "standby_password"
+                  optional = true
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name = "GRACE_PERIOD_END"
+              value_from {
+                secret_key_ref {
+                  name     = local.ldap_app_secret_name
+                  key      = "grace_period_end"
+                  optional = true
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name  = "GRACE_PERIOD"
+              value = tostring(var.grace_period)
+            }
+          }
         }
       }
     }
