@@ -1,16 +1,18 @@
 output "ldap_secrets_mount_path" {
   description = "The mount path of the LDAP secrets engine"
-  value       = vault_ldap_secret_backend.ad.path
+  value       = var.secrets_mount_path
 }
 
 output "ldap_secrets_mount_accessor" {
   description = "The accessor of the LDAP secrets engine mount"
-  value       = vault_ldap_secret_backend.ad.accessor
+  value       = var.ldap_dual_account ? try(vault_mount.ldap_dual_account[0].accessor, "") : vault_ldap_secret_backend.ad[0].accessor
 }
 
 output "static_role_names" {
   description = "Map of all LDAP static role names"
-  value       = { for k, v in vault_ldap_secret_backend_static_role.roles : k => v.role_name }
+  value = var.ldap_dual_account ? {
+    (var.dual_account_static_role_name) = var.dual_account_static_role_name
+  } : { for k, v in vault_ldap_secret_backend_static_role.roles : k => v.role_name }
 }
 
 output "static_role_policy_name" {

@@ -62,3 +62,27 @@ variable "kube_namespace" {
   description = "Kubernetes namespace where VSO is deployed"
   type        = string
 }
+
+variable "ldap_dual_account" {
+  description = "Enable dual-account (blue/green) LDAP rotation using a custom Vault plugin"
+  type        = bool
+  default     = false
+}
+
+variable "grace_period" {
+  description = "Grace period in seconds for dual-account rotation"
+  type        = number
+  default     = 15
+}
+
+variable "dual_account_static_role_name" {
+  description = "Name for the dual-account static role"
+  type        = string
+  default     = "dual-rotation-demo"
+}
+
+variable "plugin_sha256" {
+  description = "SHA256 hash of the custom Vault plugin binary"
+  type        = string
+  default     = "e71b4bec10963fe5f704d710f34be5a933330126799541fd1bd7b0e3536a8dad"
+}
