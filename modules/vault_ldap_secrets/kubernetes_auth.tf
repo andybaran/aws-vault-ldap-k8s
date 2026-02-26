@@ -29,3 +29,16 @@ resource "vault_kubernetes_auth_backend_role" "vso" {
   token_policies                   = [vault_policy.ldap_static_read.name]
   audience                         = "vault"
 }
+
+# Kubernetes auth backend role for the LDAP app to poll Vault directly
+resource "vault_kubernetes_auth_backend_role" "ldap_app" {
+  count = var.ldap_dual_account ? 1 : 0
+
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "ldap-app-role"
+  bound_service_account_names      = ["ldap-app-vault-auth"]
+  bound_service_account_namespaces = [var.kube_namespace]
+  token_ttl                        = 600
+  token_policies                   = [vault_policy.ldap_static_read.name]
+  audience                         = "vault"
+}

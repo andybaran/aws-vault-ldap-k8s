@@ -104,6 +104,7 @@ component "ldap_app" {
     ldap_app_image              = var.ldap_app_image
     ldap_dual_account           = var.ldap_dual_account
     grace_period                = var.grace_period
+    vault_app_auth_role         = component.vault_ldap_secrets.vault_app_auth_role_name
   }
   providers = {
     kubernetes = provider.kubernetes.this
