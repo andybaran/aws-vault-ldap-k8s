@@ -84,7 +84,7 @@ component "vault_ldap_secrets" {
     kubernetes_ca_cert          = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace              = component.kube1.kube_namespace
     static_roles                = component.ldap.static_roles
-    static_role_rotation_period = 30
+    static_role_rotation_period = 300
     ldap_dual_account           = var.ldap_dual_account
     grace_period                = var.grace_period
   }
@@ -100,7 +100,7 @@ component "ldap_app" {
     ldap_mount_path             = component.vault_ldap_secrets.ldap_secrets_mount_path
     ldap_static_role_name       = var.ldap_dual_account ? "dual-rotation-demo" : var.ldap_app_account_name
     vso_vault_auth_name         = component.vault_cluster.vso_vault_auth_name
-    static_role_rotation_period = 30
+    static_role_rotation_period = 300
     ldap_app_image              = var.ldap_app_image
     ldap_dual_account           = var.ldap_dual_account
     grace_period                = var.grace_period
