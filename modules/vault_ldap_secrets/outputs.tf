@@ -19,3 +19,8 @@ output "static_role_policy_name" {
   description = "The name of the policy for reading static role credentials"
   value       = vault_policy.ldap_static_read.name
 }
+
+output "vault_app_auth_role_name" {
+  description = "Vault K8s auth role name for the LDAP app to poll directly"
+  value       = var.ldap_dual_account ? "ldap-app-role" : ""
+}

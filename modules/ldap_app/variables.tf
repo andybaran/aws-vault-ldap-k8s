@@ -45,3 +45,9 @@ variable "grace_period" {
   type        = number
   default     = 15
 }
+
+variable "vault_app_auth_role" {
+  description = "Vault K8s auth role name for the app to authenticate directly"
+  type        = string
+  default     = ""
+}

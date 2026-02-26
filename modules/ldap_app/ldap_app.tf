@@ -46,6 +46,17 @@ resource "kubernetes_manifest" "vault_ldap_secret" {
   computed_fields = ["spec"]
 }
 
+# Service account for the app to authenticate directly to Vault (dual-account mode only)
+resource "kubernetes_service_account_v1" "ldap_app" {
+  count = var.ldap_dual_account ? 1 : 0
+
+  metadata {
+    name      = "ldap-app-vault-auth"
+    namespace = var.kube_namespace
+  }
+  automount_service_account_token = true
+}
+
 # Deployment for LDAP credentials display application
 resource "kubernetes_deployment_v1" "ldap_app" {
   depends_on = [
@@ -85,6 +96,9 @@ resource "kubernetes_deployment_v1" "ldap_app" {
       }
 
       spec {
+        # Use dedicated SA for Vault auth when dual-account polling is enabled
+        service_account_name = var.ldap_dual_account ? kubernetes_service_account_v1.ldap_app[0].metadata[0].name : null
+
         container {
           name              = local.ldap_app_name
           image             = local.ldap_app_image
@@ -273,6 +287,39 @@ resource "kubernetes_deployment_v1" "ldap_app" {
             content {
               name  = "GRACE_PERIOD"
               value = tostring(var.grace_period)
+            }
+          }
+
+          # Vault connection config for direct polling (dual-account mode)
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name  = "VAULT_ADDR"
+              value = "http://vault.${var.kube_namespace}.svc.cluster.local:8200"
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name  = "VAULT_AUTH_ROLE"
+              value = var.vault_app_auth_role
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name  = "LDAP_MOUNT_PATH"
+              value = var.ldap_mount_path
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name  = "LDAP_STATIC_ROLE_NAME"
+              value = var.ldap_static_role_name
             }
           }
         }
