@@ -95,5 +95,5 @@ variable "ldap_dual_account" {
 variable "grace_period" {
   description = "Grace period in seconds for dual-account rotation (both credentials valid during this window). Must be less than rotation period."
   type        = number
-  default     = 60
+  default     = 20
 }

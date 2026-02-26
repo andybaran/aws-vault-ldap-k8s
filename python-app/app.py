@@ -578,8 +578,8 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
 
         function updateUI(data) {
             lastData = data;
-            rotationPeriod = data.rotation_period || 300;
-            gracePeriod = data.grace_period || 60;
+            rotationPeriod = data.rotation_period || 100;
+            gracePeriod = data.grace_period || 20;
             var ttl = data.ttl || 0;
             var state = data.rotation_state || 'active';
             var activeAcct = (data.active_account || 'a').toUpperCase();
@@ -635,8 +635,12 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             document.getElementById('label-b').textContent = 'Account B';
 
             // Position marker: percentage through the cycle (left = start, right = end)
+            // Clamp to active segment boundary until Vault confirms grace period
             var elapsed = rotationPeriod - ttl;
             var positionPct = Math.min(100, Math.max(0, (elapsed / rotationPeriod) * 100));
+            if (state !== 'grace_period') {
+                positionPct = Math.min(positionPct, activePct);
+            }
             document.getElementById('marker-a').style.left = positionPct + '%';
             document.getElementById('marker-b').style.left = positionPct + '%';
 
@@ -731,9 +735,13 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             var ttlPct = rotationPeriod > 0 ? (currentTTL / rotationPeriod) * 100 : 0;
             document.getElementById('ttl-bar').style.width = ttlPct + '%';
 
-            // Update marker position
+            // Update marker position — clamp to active boundary until Vault confirms grace
             var posElapsed = rotationPeriod - currentTTL;
             var positionPct = Math.min(100, Math.max(0, (posElapsed / rotationPeriod) * 100));
+            var activePct = ((rotationPeriod - gracePeriod) / rotationPeriod) * 100;
+            if (lastData.rotation_state !== 'grace_period') {
+                positionPct = Math.min(positionPct, activePct);
+            }
             document.getElementById('marker-a').style.left = positionPct + '%';
             document.getElementById('marker-b').style.left = positionPct + '%';
 
