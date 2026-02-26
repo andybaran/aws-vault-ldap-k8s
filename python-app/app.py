@@ -466,20 +466,22 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
 
                     <!-- Account A row -->
                     <div class="timeline-row">
-                        <div class="timeline-label">Account A</div>
+                        <div class="timeline-label" id="label-a">Account A</div>
                         <div class="timeline-bar" id="bar-a">
-                            <div class="timeline-segment seg-active" id="seg-a-active" style="flex: 80;">Active</div>
-                            <div class="timeline-segment seg-grace" id="seg-a-grace" style="flex: 20;">Grace</div>
+                            <div class="timeline-segment" id="seg-a-1" style="flex: 80;"></div>
+                            <div class="timeline-segment" id="seg-a-2" style="flex: 20;"></div>
+                            <div class="timeline-segment" id="seg-a-3" style="flex: 0;"></div>
                             <div class="timeline-marker-line" id="marker-a" style="left: 0%;"></div>
                         </div>
                     </div>
 
                     <!-- Account B row -->
                     <div class="timeline-row">
-                        <div class="timeline-label">Account B</div>
+                        <div class="timeline-label" id="label-b">Account B</div>
                         <div class="timeline-bar" id="bar-b">
-                            <div class="timeline-segment seg-inactive" id="seg-b-inactive" style="flex: 80;">Inactive</div>
-                            <div class="timeline-segment seg-active" id="seg-b-active" style="flex: 0;"></div>
+                            <div class="timeline-segment" id="seg-b-1" style="flex: 80;"></div>
+                            <div class="timeline-segment" id="seg-b-2" style="flex: 20;"></div>
+                            <div class="timeline-segment" id="seg-b-3" style="flex: 0;"></div>
                             <div class="timeline-marker-line" id="marker-b" style="left: 0%;"></div>
                         </div>
                     </div>
@@ -593,19 +595,44 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             var activePct = ((rotationPeriod - gracePeriod) / rotationPeriod) * 100;
             var gracePct = (gracePeriod / rotationPeriod) * 100;
 
-            // Account A bar: active → grace (when A is the current active)
-            // Account B bar: inactive → (nothing visible in this cycle for B becoming active)
-            // The bars show the CURRENT rotation cycle from the active account's perspective
-            document.getElementById('seg-a-active').style.flex = activePct;
-            document.getElementById('seg-a-grace').style.flex = gracePct;
-            document.getElementById('seg-b-inactive').style.flex = activePct;
-            document.getElementById('seg-b-active').style.flex = gracePct;
-            document.getElementById('seg-b-active').textContent = state === 'grace_period' ? 'Active' : '';
+            // Determine which account is the "current active" from Vault
+            // The active account's row shows: [Active (blue)] [Grace (yellow)] [Inactive (red)]
+            // The other account's row shows:  [Inactive (red)] [Active (blue)] [Grace (yellow)]
+            // This matches the reference SVG diagram layout
+            var activeRow = activeAcct === 'A' ? 'a' : 'b';
+            var standbyRow = activeAcct === 'A' ? 'b' : 'a';
 
-            // Account A labels
-            document.getElementById('seg-a-active').textContent = 'Active';
-            document.getElementById('seg-a-grace').textContent = gracePct > 8 ? 'Grace' : '';
-            document.getElementById('seg-b-inactive').textContent = 'Inactive';
+            // Active account row: Active → Grace → Inactive
+            var s1a = document.getElementById('seg-' + activeRow + '-1');
+            var s2a = document.getElementById('seg-' + activeRow + '-2');
+            var s3a = document.getElementById('seg-' + activeRow + '-3');
+            s1a.className = 'timeline-segment seg-active';
+            s1a.style.flex = activePct;
+            s1a.textContent = 'Active';
+            s2a.className = 'timeline-segment seg-grace';
+            s2a.style.flex = gracePct;
+            s2a.textContent = gracePct > 8 ? 'Grace' : '';
+            s3a.className = 'timeline-segment seg-inactive';
+            s3a.style.flex = 0;
+            s3a.textContent = '';
+
+            // Standby account row: Inactive → Active → Grace (next cycle preview)
+            var s1b = document.getElementById('seg-' + standbyRow + '-1');
+            var s2b = document.getElementById('seg-' + standbyRow + '-2');
+            var s3b = document.getElementById('seg-' + standbyRow + '-3');
+            s1b.className = 'timeline-segment seg-inactive';
+            s1b.style.flex = activePct;
+            s1b.textContent = 'Inactive';
+            s2b.className = 'timeline-segment seg-active';
+            s2b.style.flex = gracePct;
+            s2b.textContent = state === 'grace_period' ? 'Active' : '';
+            s3b.className = 'timeline-segment seg-grace';
+            s3b.style.flex = 0;
+            s3b.textContent = '';
+
+            // Update row labels to show which service account maps to each row
+            document.getElementById('label-a').textContent = 'Account A';
+            document.getElementById('label-b').textContent = 'Account B';
 
             // Position marker: percentage through the cycle (left = start, right = end)
             var elapsed = rotationPeriod - ttl;
