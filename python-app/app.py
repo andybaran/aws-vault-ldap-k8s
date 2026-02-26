@@ -13,7 +13,7 @@ import logging
 from datetime import datetime
 from flask import Flask, render_template_string, jsonify
 
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.2.0"
 try:
     import requests as http_requests
 except ImportError:
@@ -361,31 +361,6 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
         .content { padding: var(--spacing-600) var(--spacing-700); }
 
         /* ── Rotation Timeline ── */
-        .timeline-section { margin-bottom: var(--spacing-600); }
-        .timeline-title { font-size: var(--font-size-body-300); font-weight: var(--font-weight-semibold); color: var(--color-foreground-strong); margin-bottom: var(--spacing-200); text-align: center; }
-        .timeline-subtitle { font-size: var(--font-size-body-100); color: var(--color-foreground-faint); text-align: center; margin-bottom: var(--spacing-500); }
-        .timeline-wrapper { position: relative; padding: var(--spacing-500); background: var(--color-surface-secondary); border: 1px solid var(--color-border-primary); border-radius: var(--radius-medium); }
-        .timeline-row { display: flex; align-items: center; margin-bottom: var(--spacing-300); }
-        .timeline-row:last-of-type { margin-bottom: 0; }
-        .timeline-label { width: 90px; font-size: var(--font-size-body-200); font-weight: var(--font-weight-semibold); color: var(--color-foreground-strong); flex-shrink: 0; }
-        .timeline-bar { flex: 1; display: flex; height: 40px; border-radius: var(--radius-small); overflow: hidden; border: 1px solid var(--color-border-primary); position: relative; }
-        .timeline-segment { display: flex; align-items: center; justify-content: center; font-size: var(--font-size-body-100); font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: 0.5px; }
-        .seg-active { background: var(--color-active); color: var(--color-active-text); }
-        .seg-grace { background: var(--color-grace); color: var(--color-grace-text); }
-        .seg-inactive { background: var(--color-inactive); color: var(--color-inactive-text); }
-
-        /* Moving position marker */
-        .timeline-marker-line { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--color-foreground-strong); z-index: 10; transition: left 1s linear; pointer-events: none; }
-        .timeline-marker-line::before { content: '▼'; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--color-foreground-strong); }
-
-        /* Grace period bracket (above timeline) */
-        .grace-bracket { position: relative; height: 28px; margin-bottom: var(--spacing-200); }
-        .grace-bracket-label { position: absolute; font-size: var(--font-size-body-100); color: var(--color-foreground-faint); text-align: center; white-space: nowrap; }
-        .grace-bracket-line { position: absolute; bottom: 0; height: 2px; background: var(--color-foreground-faint); }
-        .grace-bracket-tick { position: absolute; bottom: 0; width: 2px; height: 8px; background: var(--color-foreground-faint); }
-
-        /* Timeline tick marks */
-        .timeline-ticks { display: flex; justify-content: space-between; margin-top: var(--spacing-200); padding-left: 90px; font-size: var(--font-size-body-100); color: var(--color-foreground-faint); font-weight: var(--font-weight-semibold); }
 
         /* ── Countdown timers ── */
         .timers-row { display: flex; gap: var(--spacing-400); margin-bottom: var(--spacing-600); }
@@ -455,51 +430,6 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
 
         <div class="content">
             <div id="error-banner" class="error-banner"></div>
-
-            <!-- Rotation Timeline Diagram -->
-            <div class="timeline-section">
-                <div class="timeline-title" id="timeline-title">Rotation Cycle</div>
-                <div class="timeline-subtitle" id="timeline-subtitle">Loading...</div>
-
-                <div class="timeline-wrapper">
-                    <!-- Grace period bracket -->
-                    <div class="grace-bracket" id="grace-bracket" style="margin-left: 90px; position: relative;">
-                        <span class="grace-bracket-label" id="grace-bracket-label">Grace Period</span>
-                        <div class="grace-bracket-line" id="grace-bracket-line"></div>
-                        <div class="grace-bracket-tick" id="grace-bracket-tick-l"></div>
-                        <div class="grace-bracket-tick" id="grace-bracket-tick-r"></div>
-                    </div>
-
-                    <!-- Account A row -->
-                    <div class="timeline-row">
-                        <div class="timeline-label" id="label-a">Account A</div>
-                        <div class="timeline-bar" id="bar-a">
-                            <div class="timeline-segment" id="seg-a-1" style="flex: 80;"></div>
-                            <div class="timeline-segment" id="seg-a-2" style="flex: 20;"></div>
-                            <div class="timeline-segment" id="seg-a-3" style="flex: 0;"></div>
-                            <div class="timeline-marker-line" id="marker-a" style="left: 0%;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Account B row -->
-                    <div class="timeline-row">
-                        <div class="timeline-label" id="label-b">Account B</div>
-                        <div class="timeline-bar" id="bar-b">
-                            <div class="timeline-segment" id="seg-b-1" style="flex: 80;"></div>
-                            <div class="timeline-segment" id="seg-b-2" style="flex: 20;"></div>
-                            <div class="timeline-segment" id="seg-b-3" style="flex: 0;"></div>
-                            <div class="timeline-marker-line" id="marker-b" style="left: 0%;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Tick marks -->
-                    <div class="timeline-ticks">
-                        <span>0s</span>
-                        <span id="tick-grace-start"></span>
-                        <span id="tick-end"></span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Countdown timers -->
             <div class="timers-row">
@@ -591,85 +521,6 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             var activeAcct = (data.active_account || 'a').toUpperCase();
             var standbyAcct = activeAcct === 'A' ? 'B' : 'A';
 
-            // Timeline title
-            document.getElementById('timeline-title').textContent = rotationPeriod + 's Rotation Cycle';
-            var activePhaseSec = rotationPeriod - gracePeriod;
-            document.getElementById('timeline-subtitle').textContent =
-                activePhaseSec + 's active · ' + gracePeriod + 's grace period';
-
-            // Segment proportions
-            var activePct = ((rotationPeriod - gracePeriod) / rotationPeriod) * 100;
-            var gracePct = (gracePeriod / rotationPeriod) * 100;
-
-            // Determine which account is the "current active" from Vault
-            // The active account's row shows: [Active (blue)] [Grace (yellow)] [Inactive (red)]
-            // The other account's row shows:  [Inactive (red)] [Active (blue)] [Grace (yellow)]
-            // This matches the reference SVG diagram layout
-            var activeRow = activeAcct === 'A' ? 'a' : 'b';
-            var standbyRow = activeAcct === 'A' ? 'b' : 'a';
-
-            // Active account row: Active → Grace → Inactive
-            var s1a = document.getElementById('seg-' + activeRow + '-1');
-            var s2a = document.getElementById('seg-' + activeRow + '-2');
-            var s3a = document.getElementById('seg-' + activeRow + '-3');
-            s1a.className = 'timeline-segment seg-active';
-            s1a.style.flex = activePct;
-            s1a.textContent = 'Active';
-            s2a.className = 'timeline-segment seg-grace';
-            s2a.style.flex = gracePct;
-            s2a.textContent = gracePct > 8 ? 'Grace' : '';
-            s3a.className = 'timeline-segment seg-inactive';
-            s3a.style.flex = 0;
-            s3a.textContent = '';
-
-            // Standby account row: Inactive → Active → Grace (next cycle preview)
-            var s1b = document.getElementById('seg-' + standbyRow + '-1');
-            var s2b = document.getElementById('seg-' + standbyRow + '-2');
-            var s3b = document.getElementById('seg-' + standbyRow + '-3');
-            s1b.className = 'timeline-segment seg-inactive';
-            s1b.style.flex = activePct;
-            s1b.textContent = 'Inactive';
-            s2b.className = 'timeline-segment seg-active';
-            s2b.style.flex = gracePct;
-            s2b.textContent = state === 'grace_period' ? 'Active' : '';
-            s3b.className = 'timeline-segment seg-grace';
-            s3b.style.flex = 0;
-            s3b.textContent = '';
-
-            // Update row labels to show which service account maps to each row
-            document.getElementById('label-a').textContent = 'Account A';
-            document.getElementById('label-b').textContent = 'Account B';
-
-            // Position marker: percentage through the cycle (left = start, right = end)
-            // Use TTL-based threshold instead of rotation_state to avoid timing mismatches
-            var elapsed = rotationPeriod - ttl;
-            var positionPct = Math.min(100, Math.max(0, (elapsed / rotationPeriod) * 100));
-            if (ttl > gracePeriod) {
-                positionPct = Math.min(positionPct, activePct);
-            }
-            document.getElementById('marker-a').style.left = positionPct + '%';
-            document.getElementById('marker-b').style.left = positionPct + '%';
-
-            // Grace bracket positioning
-            var bracketLeft = activePct;
-            var bracketWidth = gracePct;
-            var bracketEl = document.getElementById('grace-bracket');
-            var bracketLabel = document.getElementById('grace-bracket-label');
-            var bracketLine = document.getElementById('grace-bracket-line');
-            var tickL = document.getElementById('grace-bracket-tick-l');
-            var tickR = document.getElementById('grace-bracket-tick-r');
-            bracketLabel.style.left = bracketLeft + '%';
-            bracketLabel.style.width = bracketWidth + '%';
-            bracketLabel.style.top = '0';
-            bracketLine.style.left = bracketLeft + '%';
-            bracketLine.style.width = bracketWidth + '%';
-            tickL.style.left = bracketLeft + '%';
-            tickR.style.left = (bracketLeft + bracketWidth) + '%';
-
-            // Tick marks
-            document.getElementById('tick-grace-start').textContent = activePhaseSec + 's';
-            document.getElementById('tick-end').textContent = rotationPeriod + 's';
-
             // TTL countdown
             document.getElementById('ttl-value').textContent = formatTime(ttl);
             var ttlPct = rotationPeriod > 0 ? (ttl / rotationPeriod) * 100 : 0;
@@ -740,16 +591,6 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             document.getElementById('ttl-value').textContent = formatTime(currentTTL);
             var ttlPct = rotationPeriod > 0 ? (currentTTL / rotationPeriod) * 100 : 0;
             document.getElementById('ttl-bar').style.width = ttlPct + '%';
-
-            // Update marker position — clamp to active boundary until TTL enters grace window
-            var posElapsed = rotationPeriod - currentTTL;
-            var positionPct = Math.min(100, Math.max(0, (posElapsed / rotationPeriod) * 100));
-            var activePct = ((rotationPeriod - gracePeriod) / rotationPeriod) * 100;
-            if (currentTTL > gracePeriod) {
-                positionPct = Math.min(positionPct, activePct);
-            }
-            document.getElementById('marker-a').style.left = positionPct + '%';
-            document.getElementById('marker-b').style.left = positionPct + '%';
 
             // Update grace countdown if in grace period
             if (lastData.rotation_state === 'grace_period' && lastData.grace_period_end) {
