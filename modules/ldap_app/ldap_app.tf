@@ -97,7 +97,25 @@ resource "kubernetes_deployment_v1" "ldap_app" {
 
       spec {
         # Use dedicated SA for Vault auth when dual-account polling is enabled
-        service_account_name = var.ldap_dual_account ? kubernetes_service_account_v1.ldap_app[0].metadata[0].name : null
+        service_account_name            = var.ldap_dual_account ? kubernetes_service_account_v1.ldap_app[0].metadata[0].name : null
+        automount_service_account_token = var.ldap_dual_account ? false : true
+
+        # Projected volume with "vault" audience for direct Vault K8s auth
+        dynamic "volume" {
+          for_each = var.ldap_dual_account ? [1] : []
+          content {
+            name = "vault-token"
+            projected {
+              sources {
+                service_account_token {
+                  path               = "token"
+                  expiration_seconds = 3600
+                  audience           = "vault"
+                }
+              }
+            }
+          }
+        }
 
         container {
           name              = local.ldap_app_name
@@ -320,6 +338,16 @@ resource "kubernetes_deployment_v1" "ldap_app" {
             content {
               name  = "LDAP_STATIC_ROLE_NAME"
               value = var.ldap_static_role_name
+            }
+          }
+
+          # Mount projected volume with "vault" audience token
+          dynamic "volume_mount" {
+            for_each = var.ldap_dual_account ? [1] : []
+            content {
+              name       = "vault-token"
+              mount_path = "/var/run/secrets/vault"
+              read_only  = true
             }
           }
         }

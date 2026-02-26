@@ -31,7 +31,10 @@ class VaultClient:
         self.auth_mount = mount
         self._token = None
         self._token_expires_at = 0
-        self._sa_token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        self._sa_token_path = os.getenv(
+            "VAULT_SA_TOKEN_PATH",
+            "/var/run/secrets/vault/token"
+        )
 
     def _read_sa_token(self):
         """Read the Kubernetes service account JWT token."""
