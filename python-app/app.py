@@ -641,10 +641,10 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             document.getElementById('label-b').textContent = 'Account B';
 
             // Position marker: percentage through the cycle (left = start, right = end)
-            // Clamp to active segment boundary until Vault confirms grace period
+            // Use TTL-based threshold instead of rotation_state to avoid timing mismatches
             var elapsed = rotationPeriod - ttl;
             var positionPct = Math.min(100, Math.max(0, (elapsed / rotationPeriod) * 100));
-            if (state !== 'grace_period') {
+            if (ttl > gracePeriod) {
                 positionPct = Math.min(positionPct, activePct);
             }
             document.getElementById('marker-a').style.left = positionPct + '%';
@@ -741,11 +741,11 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             var ttlPct = rotationPeriod > 0 ? (currentTTL / rotationPeriod) * 100 : 0;
             document.getElementById('ttl-bar').style.width = ttlPct + '%';
 
-            // Update marker position — clamp to active boundary until Vault confirms grace
+            // Update marker position — clamp to active boundary until TTL enters grace window
             var posElapsed = rotationPeriod - currentTTL;
             var positionPct = Math.min(100, Math.max(0, (posElapsed / rotationPeriod) * 100));
             var activePct = ((rotationPeriod - gracePeriod) / rotationPeriod) * 100;
-            if (lastData.rotation_state !== 'grace_period') {
+            if (currentTTL > gracePeriod) {
                 positionPct = Math.min(positionPct, activePct);
             }
             document.getElementById('marker-a').style.left = positionPct + '%';
