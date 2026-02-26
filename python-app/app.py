@@ -12,6 +12,8 @@ import json
 import logging
 from datetime import datetime
 from flask import Flask, render_template_string, jsonify
+
+APP_VERSION = "2.1.0"
 try:
     import requests as http_requests
 except ImportError:
@@ -161,11 +163,12 @@ HTML_TEMPLATE = """
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-family-text); background-color: var(--color-surface-strong); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--spacing-500); color: var(--color-foreground-primary); }
         .container { background: var(--color-surface-primary); border-radius: var(--radius-large); box-shadow: var(--elevation-high); max-width: 900px; width: 100%; overflow: hidden; }
-        .brand-header { background: var(--color-black); color: var(--color-surface-primary); padding: var(--spacing-600) var(--spacing-700); text-align: center; border-bottom: 3px solid var(--color-vault); }
+        .brand-header { background: var(--color-black); color: var(--color-surface-primary); padding: var(--spacing-600) var(--spacing-700); text-align: center; border-bottom: 3px solid var(--color-vault); position: relative; }
         .brand-header-content { display: flex; align-items: center; justify-content: center; gap: var(--spacing-400); margin-bottom: var(--spacing-400); }
         .vault-logo { width: 48px; height: 48px; flex-shrink: 0; }
         .brand-header h1 { font-size: var(--font-size-display-400); font-weight: var(--font-weight-semibold); line-height: var(--line-height-display); margin: 0; color: var(--color-surface-primary); }
         .brand-header p { font-size: var(--font-size-body-300); color: var(--color-surface-tertiary); margin: 0; line-height: var(--line-height-body); }
+        .version-tag { position: absolute; top: var(--spacing-300); right: var(--spacing-400); font-size: 11px; color: var(--color-foreground-faint); font-family: var(--font-family-code); opacity: 0.7; }
         .status-badge { display: inline-flex; align-items: center; gap: var(--spacing-100); background: var(--color-success); color: var(--color-surface-primary); padding: var(--spacing-100) var(--spacing-300); border-radius: var(--radius-large); font-size: var(--font-size-body-100); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 0.5px; margin-top: var(--spacing-300); }
         .status-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--color-surface-primary); animation: pulse 2s ease-in-out infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -210,6 +213,7 @@ HTML_TEMPLATE = """
             </div>
             <p>Automatically rotated credentials managed by HashiCorp Vault</p>
             <div class="status-badge">Live Demo</div>
+            <span class="version-tag">v{{ version }}</span>
         </div>
         <div class="content">
             <h2 class="section-title">Active Credentials</h2>
@@ -342,11 +346,12 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-family-text); background-color: var(--color-surface-strong); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--spacing-500); color: var(--color-foreground-primary); }
         .container { background: var(--color-surface-primary); border-radius: var(--radius-large); box-shadow: var(--elevation-high); max-width: 960px; width: 100%; overflow: hidden; }
-        .brand-header { background: var(--color-black); color: var(--color-surface-primary); padding: var(--spacing-600) var(--spacing-700); text-align: center; border-bottom: 3px solid var(--color-vault); }
+        .brand-header { background: var(--color-black); color: var(--color-surface-primary); padding: var(--spacing-600) var(--spacing-700); text-align: center; border-bottom: 3px solid var(--color-vault); position: relative; }
         .brand-header-content { display: flex; align-items: center; justify-content: center; gap: var(--spacing-400); margin-bottom: var(--spacing-400); }
         .vault-logo { width: 48px; height: 48px; flex-shrink: 0; }
         .brand-header h1 { font-size: var(--font-size-display-400); font-weight: var(--font-weight-semibold); line-height: var(--line-height-display); margin: 0; color: var(--color-surface-primary); }
         .brand-header p { font-size: var(--font-size-body-300); color: var(--color-surface-tertiary); margin: 0; }
+        .version-tag { position: absolute; top: var(--spacing-300); right: var(--spacing-400); font-size: 11px; color: var(--color-foreground-faint); font-family: var(--font-family-code); opacity: 0.7; }
         .status-badge { display: inline-flex; align-items: center; gap: var(--spacing-100); padding: var(--spacing-100) var(--spacing-300); border-radius: var(--radius-large); font-size: var(--font-size-body-100); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 0.5px; margin-top: var(--spacing-300); }
         .status-badge-active { background: var(--color-success); color: #fff; }
         .status-badge-grace { background: var(--color-vault); color: var(--color-black); }
@@ -445,6 +450,7 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
             </div>
             <p>Dual-Account (Blue/Green) Credential Rotation</p>
             <span class="status-badge status-badge-active" id="state-badge">● Live</span>
+            <span class="version-tag">v{{ version }}</span>
         </div>
 
         <div class="content">
@@ -786,7 +792,7 @@ def index():
 
     if dual_account_mode:
         # Dual-account mode — page is rendered with JS that polls /api/credentials
-        return render_template_string(DUAL_ACCOUNT_HTML_TEMPLATE)
+        return render_template_string(DUAL_ACCOUNT_HTML_TEMPLATE, version=APP_VERSION)
     else:
         # Single-account mode — same env-var-based behavior as before
         credentials = {
@@ -797,7 +803,7 @@ def index():
             'rotation_ttl': int(os.getenv('ROTATION_TTL', '0')),
             'current_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
         }
-        return render_template_string(HTML_TEMPLATE, **credentials)
+        return render_template_string(HTML_TEMPLATE, version=APP_VERSION, **credentials)
 
 
 @app.route('/api/credentials')
