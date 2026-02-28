@@ -12,20 +12,20 @@ resource "helm_release" "secrets_store_csi_driver" {
   namespace  = var.kube_namespace
   version    = "1.4.7"
 
-  set {
-    name  = "syncSecret.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "enableSecretRotation"
-    value = "true"
-  }
-
-  set {
-    name  = "rotationPollInterval"
-    value = "30s"
-  }
+  set = [
+    {
+      name  = "syncSecret.enabled"
+      value = "true"
+    },
+    {
+      name  = "enableSecretRotation"
+      value = "true"
+    },
+    {
+      name  = "rotationPollInterval"
+      value = "30s"
+    }
+  ]
 
   depends_on = [helm_release.vault_cluster]
 }
