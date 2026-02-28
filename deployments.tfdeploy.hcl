@@ -32,6 +32,12 @@ deployment "development" {
     allowlist_ip                 = "66.190.197.168/32"
     ldap_dual_account            = true
 
+    # Vault provider credentials - decoupled from vault_cluster component
+    # outputs to avoid Stacks "unknown output" cascade during planning.
+    # Update these in the "vault" variable set after vault re-initialization.
+    vault_address = store.varset.vault_license.stable.vault_address
+    vault_token   = store.varset.vault_license.stable.vault_token
+
     #### Auth credentials for AWS
     AWS_ACCESS_KEY_ID     = store.varset.aws_creds.AWS_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY = store.varset.aws_creds.AWS_SECRET_ACCESS_KEY

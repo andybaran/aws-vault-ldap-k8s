@@ -36,3 +36,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 python-app/__pycache__/
+agent-status-dashboard/
+v2/time-tracking/data/

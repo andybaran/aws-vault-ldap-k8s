@@ -97,3 +97,14 @@ variable "grace_period" {
   type        = number
   default     = 20
 }
+
+variable "vault_address" {
+  description = "Vault server address (http://host:port). Set after initial vault_cluster deployment to decouple the vault provider from vault_cluster component outputs, working around a Terraform Stacks limitation where component changes make outputs unknown."
+  type        = string
+}
+
+variable "vault_token" {
+  description = "Vault root token. Set after initial vault_cluster deployment."
+  type        = string
+  sensitive   = true
+}
