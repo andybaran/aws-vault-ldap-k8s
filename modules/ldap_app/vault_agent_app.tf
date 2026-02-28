@@ -39,8 +39,8 @@ resource "kubernetes_config_map_v1" "vault_agent_config" {
         method "kubernetes" {
           mount_path = "auth/kubernetes"
           config = {
-            role            = "vault-agent-app-role"
-            token_audiences = "vault"
+            role       = "vault-agent-app-role"
+            token_path = "/var/run/secrets/vault/token"
           }
         }
         sink "file" {
@@ -78,8 +78,8 @@ resource "kubernetes_config_map_v1" "vault_agent_config" {
         method "kubernetes" {
           mount_path = "auth/kubernetes"
           config = {
-            role            = "vault-agent-app-role"
-            token_audiences = "vault"
+            role       = "vault-agent-app-role"
+            token_path = "/var/run/secrets/vault/token"
           }
         }
         sink "file" {
@@ -157,6 +157,20 @@ resource "kubernetes_deployment_v1" "ldap_app_vault_agent" {
           }
         }
 
+        # Projected SA token with 'vault' audience for Vault K8s auth
+        volume {
+          name = "vault-token"
+          projected {
+            sources {
+              service_account_token {
+                audience           = "vault"
+                expiration_seconds = 7200
+                path               = "token"
+              }
+            }
+          }
+        }
+
         # Init container: Vault Agent in init mode to pre-render credentials
         init_container {
           name  = "vault-agent-init"
@@ -172,6 +186,12 @@ resource "kubernetes_deployment_v1" "ldap_app_vault_agent" {
           volume_mount {
             name       = "vault-agent-config"
             mount_path = "/vault/config"
+            read_only  = true
+          }
+
+          volume_mount {
+            name       = "vault-token"
+            mount_path = "/var/run/secrets/vault"
             read_only  = true
           }
 
@@ -202,6 +222,12 @@ resource "kubernetes_deployment_v1" "ldap_app_vault_agent" {
           volume_mount {
             name       = "vault-agent-config"
             mount_path = "/vault/config"
+            read_only  = true
+          }
+
+          volume_mount {
+            name       = "vault-token"
+            mount_path = "/var/run/secrets/vault"
             read_only  = true
           }
 
