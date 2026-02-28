@@ -217,6 +217,11 @@ resource "kubernetes_deployment_v1" "ldap_app" {
             }
           }
 
+          env {
+            name  = "SECRET_DELIVERY_METHOD"
+            value = "vault-secrets-operator"
+          }
+
           # Dual-account mode environment variables
           # These are only injected when ldap_dual_account is true.
           # Fields like standby_username may not exist in the K8s secret

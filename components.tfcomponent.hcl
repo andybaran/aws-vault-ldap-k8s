@@ -185,6 +185,18 @@ output "ldap_app_access_info" {
   type        = string
 }
 
+output "ldap_app_vault_agent_url" {
+  description = "URL of the Vault Agent sidecar LDAP app"
+  value       = component.ldap_app.ldap_app_vault_agent_url
+  type        = string
+}
+
+output "ldap_app_csi_url" {
+  description = "URL of the CSI Driver LDAP app"
+  value       = component.ldap_app.ldap_app_csi_url
+  type        = string
+}
+
 # output "vault_root_token" {
 #     description = "The Vault root token."
 #     value = component.vault_cluster.vault_root_token

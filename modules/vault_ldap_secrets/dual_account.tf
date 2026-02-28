@@ -73,3 +73,30 @@ resource "vault_generic_endpoint" "ldap_dual_static_role" {
 
   depends_on = [vault_generic_endpoint.ldap_config]
 }
+
+# Single-account static roles for svc-single and svc-lib
+# The custom dual-account plugin also supports standard single-account static roles
+resource "vault_generic_endpoint" "ldap_single_static_role" {
+  for_each = var.ldap_dual_account ? {
+    "svc-single" = {
+      username = "svc-single"
+      dn       = "CN=svc-single,CN=Users,DC=mydomain,DC=local"
+    }
+    "svc-lib" = {
+      username = "svc-lib"
+      dn       = "CN=svc-lib,CN=Users,DC=mydomain,DC=local"
+    }
+  } : {}
+
+  path           = "${var.secrets_mount_path}/static-role/${each.key}"
+  disable_read   = true
+  disable_delete = false
+
+  data_json = jsonencode({
+    username        = each.value.username
+    dn              = each.value.dn
+    rotation_period = "${var.static_role_rotation_period}s"
+  })
+
+  depends_on = [vault_generic_endpoint.ldap_config]
+}
