@@ -71,46 +71,53 @@ component "ldap" {
 
 }
 
-component "vault_ldap_secrets" {
-  source = "./modules/vault_ldap_secrets"
-  inputs = {
-    ldap_url                    = "ldaps://${component.ldap.dc-priv-ip}"
-    ldap_binddn                 = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
-    ldap_bindpass               = component.ldap.password
-    ldap_userdn                 = "CN=Users,DC=mydomain,DC=local"
-    secrets_mount_path          = "ldap"
-    active_directory_domain     = "mydomain.local"
-    kubernetes_host             = component.kube0.cluster_endpoint
-    kubernetes_ca_cert          = component.kube0.kube_cluster_certificate_authority_data
-    kube_namespace              = component.kube1.kube_namespace
-    static_roles                = component.ldap.static_roles
-    static_role_rotation_period = 100
-    ldap_dual_account           = var.ldap_dual_account
-    grace_period                = var.grace_period
-  }
-  providers = {
-    vault = provider.vault.this
-  }
-}
-
-component "ldap_app" {
-  source = "./modules/ldap_app"
-  inputs = {
-    kube_namespace              = component.kube1.kube_namespace
-    ldap_mount_path             = component.vault_ldap_secrets.ldap_secrets_mount_path
-    ldap_static_role_name       = var.ldap_dual_account ? "dual-rotation-demo" : var.ldap_app_account_name
-    vso_vault_auth_name         = component.vault_cluster.vso_vault_auth_name
-    static_role_rotation_period = 100
-    ldap_app_image              = var.ldap_app_image
-    ldap_dual_account           = var.ldap_dual_account
-    grace_period                = var.grace_period
-    vault_app_auth_role         = component.vault_ldap_secrets.vault_app_auth_role_name
-  }
-  providers = {
-    kubernetes = provider.kubernetes.this
-    time       = provider.time.this
-  }
-}
+# TEMPORARILY COMMENTED OUT: vault_ldap_secrets and ldap_app
+# These components depend on the vault provider which requires vault_cluster
+# outputs. When vault_cluster has pending changes, its outputs become "unknown"
+# during Stacks planning, causing the vault provider to fail with
+# "failed to configure Vault address". We must let vault_cluster apply first
+# to update its state, then re-enable these components.
+#
+# component "vault_ldap_secrets" {
+#   source = "./modules/vault_ldap_secrets"
+#   inputs = {
+#     ldap_url                    = "ldaps://${component.ldap.dc-priv-ip}"
+#     ldap_binddn                 = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
+#     ldap_bindpass               = component.ldap.password
+#     ldap_userdn                 = "CN=Users,DC=mydomain,DC=local"
+#     secrets_mount_path          = "ldap"
+#     active_directory_domain     = "mydomain.local"
+#     kubernetes_host             = component.kube0.cluster_endpoint
+#     kubernetes_ca_cert          = component.kube0.kube_cluster_certificate_authority_data
+#     kube_namespace              = component.kube1.kube_namespace
+#     static_roles                = component.ldap.static_roles
+#     static_role_rotation_period = 100
+#     ldap_dual_account           = var.ldap_dual_account
+#     grace_period                = var.grace_period
+#   }
+#   providers = {
+#     vault = provider.vault.this
+#   }
+# }
+#
+# component "ldap_app" {
+#   source = "./modules/ldap_app"
+#   inputs = {
+#     kube_namespace              = component.kube1.kube_namespace
+#     ldap_mount_path             = component.vault_ldap_secrets.ldap_secrets_mount_path
+#     ldap_static_role_name       = var.ldap_dual_account ? "dual-rotation-demo" : var.ldap_app_account_name
+#     vso_vault_auth_name         = component.vault_cluster.vso_vault_auth_name
+#     static_role_rotation_period = 100
+#     ldap_app_image              = var.ldap_app_image
+#     ldap_dual_account           = var.ldap_dual_account
+#     grace_period                = var.grace_period
+#     vault_app_auth_role         = component.vault_ldap_secrets.vault_app_auth_role_name
+#   }
+#   providers = {
+#     kubernetes = provider.kubernetes.this
+#     time       = provider.time.this
+#   }
+# }
 
 output "public-dns-address" {
   description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
@@ -167,35 +174,36 @@ output "vault_root_token" {
   sensitive   = true
 }
 
-output "vault_ldap_secrets_path" {
-  description = "Mount path for the Vault LDAP secrets engine"
-  value       = component.vault_ldap_secrets.ldap_secrets_mount_path
-  type        = string
-}
-
-output "ldap_app_service_name" {
-  description = "Kubernetes service name for the LDAP credentials application"
-  value       = component.ldap_app.ldap_app_service_name
-  type        = string
-}
-
-output "ldap_app_access_info" {
-  description = "Access information for the LDAP credentials application"
-  value       = component.ldap_app.ldap_app_url
-  type        = string
-}
-
-output "ldap_app_vault_agent_url" {
-  description = "URL of the Vault Agent sidecar LDAP app"
-  value       = component.ldap_app.ldap_app_vault_agent_url
-  type        = string
-}
-
-output "ldap_app_csi_url" {
-  description = "URL of the CSI Driver LDAP app"
-  value       = component.ldap_app.ldap_app_csi_url
-  type        = string
-}
+# TEMPORARILY COMMENTED OUT (depends on vault_ldap_secrets/ldap_app)
+# output "vault_ldap_secrets_path" {
+#   description = "Mount path for the Vault LDAP secrets engine"
+#   value       = component.vault_ldap_secrets.ldap_secrets_mount_path
+#   type        = string
+# }
+#
+# output "ldap_app_service_name" {
+#   description = "Kubernetes service name for the LDAP credentials application"
+#   value       = component.ldap_app.ldap_app_service_name
+#   type        = string
+# }
+#
+# output "ldap_app_access_info" {
+#   description = "Access information for the LDAP credentials application"
+#   value       = component.ldap_app.ldap_app_url
+#   type        = string
+# }
+#
+# output "ldap_app_vault_agent_url" {
+#   description = "URL of the Vault Agent sidecar LDAP app"
+#   value       = component.ldap_app.ldap_app_vault_agent_url
+#   type        = string
+# }
+#
+# output "ldap_app_csi_url" {
+#   description = "URL of the CSI Driver LDAP app"
+#   value       = component.ldap_app.ldap_app_csi_url
+#   type        = string
+# }
 
 # output "vault_root_token" {
 #     description = "The Vault root token."
