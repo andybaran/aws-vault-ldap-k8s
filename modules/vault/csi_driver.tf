@@ -1,5 +1,5 @@
 # Secrets Store CSI Driver
-# The Vault Helm chart has csi.enabled=true (Vault CSI Provider),
+# The Vault Helm chart enables the Vault CSI Provider (csi.enabled=true),
 # but the Secrets Store CSI Driver itself needs separate installation.
 # Reference: https://secrets-store-csi-driver.sigs.k8s.io/
 
