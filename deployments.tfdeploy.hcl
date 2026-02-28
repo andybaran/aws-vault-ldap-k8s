@@ -49,3 +49,4 @@ deployment "development" {
 
 
 
+# Re-trigger: previous apply had transient EKS token expiry + identity change
