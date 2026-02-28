@@ -50,3 +50,4 @@ deployment "development" {
 
 
 # Re-trigger: previous apply had transient EKS token expiry + identity change
+# Retry: deleted orphaned K8s deployments not tracked in TF state
