@@ -39,7 +39,8 @@ resource "kubernetes_config_map_v1" "vault_agent_config" {
         method "kubernetes" {
           mount_path = "auth/kubernetes"
           config = {
-            role = "vault-agent-app-role"
+            role            = "vault-agent-app-role"
+            token_audiences = "vault"
           }
         }
         sink "file" {
@@ -77,7 +78,8 @@ resource "kubernetes_config_map_v1" "vault_agent_config" {
         method "kubernetes" {
           mount_path = "auth/kubernetes"
           config = {
-            role = "vault-agent-app-role"
+            role            = "vault-agent-app-role"
+            token_audiences = "vault"
           }
         }
         sink "file" {
