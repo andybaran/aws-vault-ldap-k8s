@@ -120,7 +120,7 @@ YAML
     },
     {
       name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
-      value = "internal"
+      value = "internet-facing"
     },
     {
       name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-backend-protocol"
@@ -148,7 +148,7 @@ YAML
     },
     {
       name  = "ui.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
-      value = "internal"
+      value = "internet-facing"
     }
 
   ]
