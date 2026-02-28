@@ -1,37 +1,152 @@
 #!/usr/bin/env python3
 """
 Simple Flask web application to display LDAP credentials from Vault.
-Supports two modes:
-- Single-account: credentials read from env vars (delivered by VSO)
-- Dual-account: credentials polled directly from Vault API for real-time display
+Supports multiple secret delivery methods:
+- vault-secrets-operator: credentials read from env vars (delivered by VSO)
+- vault-agent-sidecar: credentials read from rendered file
+- vault-csi-driver: credentials read from individual files
+Also supports dual-account mode with direct Vault API polling.
 """
 
 import os
 import time
-import json
+import threading
 import logging
 from datetime import datetime
 from flask import Flask, render_template_string, jsonify
 
-APP_VERSION = "2.2.0"
+APP_VERSION = "3.0.0"
+
+# Try to import hvac for direct Vault API access
 try:
-    import requests as http_requests
+    import hvac
 except ImportError:
-    http_requests = None
+    hvac = None
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# ─── Secret Delivery Method Configuration ───────────────────────────────────
+SECRET_DELIVERY_METHOD = os.getenv('SECRET_DELIVERY_METHOD', 'vault-secrets-operator')
+VAULT_AGENT_CREDS_FILE = os.getenv('VAULT_AGENT_CREDS_FILE', '/vault/secrets/ldap-creds')
+VAULT_CSI_SECRETS_DIR = os.getenv('VAULT_CSI_SECRETS_DIR', '/vault/secrets')
+
+# Human-friendly display names for delivery methods
+DELIVERY_METHOD_DISPLAY = {
+    'vault-secrets-operator': 'Vault Secrets Operator',
+    'vault-agent-sidecar': 'Vault Agent Sidecar',
+    'vault-csi-driver': 'Vault CSI Driver',
+}
+
+
+# ─── File-Based Credential Cache ────────────────────────────────────────────
+class FileCredentialCache:
+    """Periodically reads credentials from files for agent/CSI delivery methods."""
+
+    def __init__(self, delivery_method, refresh_interval=5):
+        self._delivery_method = delivery_method
+        self._refresh_interval = refresh_interval
+        self._credentials = {}
+        self._lock = threading.Lock()
+        self._running = False
+        self._thread = None
+
+    def start(self):
+        """Start the background refresh thread."""
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._refresh_loop, daemon=True)
+        self._thread.start()
+        logger.info("FileCredentialCache started for method=%s", self._delivery_method)
+
+    def stop(self):
+        """Stop the background refresh thread."""
+        self._running = False
+
+    def get_credentials(self):
+        """Get the cached credentials."""
+        with self._lock:
+            return self._credentials.copy()
+
+    def _refresh_loop(self):
+        """Background loop that refreshes credentials from files."""
+        while self._running:
+            try:
+                self._read_credentials()
+            except Exception as e:
+                logger.error("Error reading credentials from files: %s", e)
+            time.sleep(self._refresh_interval)
+
+    def _read_credentials(self):
+        """Read credentials based on delivery method."""
+        creds = {}
+
+        if self._delivery_method == 'vault-agent-sidecar':
+            creds = self._read_agent_sidecar_file()
+        elif self._delivery_method == 'vault-csi-driver':
+            creds = self._read_csi_files()
+
+        with self._lock:
+            self._credentials = creds
+
+    def _read_agent_sidecar_file(self):
+        """Read credentials from Vault Agent rendered file (key=value format)."""
+        creds = {}
+        try:
+            with open(VAULT_AGENT_CREDS_FILE, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if '=' in line and not line.startswith('#'):
+                        key, value = line.split('=', 1)
+                        creds[key.strip()] = value.strip()
+            logger.debug("Read %d credentials from agent sidecar file", len(creds))
+        except FileNotFoundError:
+            logger.warning("Vault Agent creds file not found: %s", VAULT_AGENT_CREDS_FILE)
+        except Exception as e:
+            logger.error("Error reading agent sidecar file: %s", e)
+        return creds
+
+    def _read_csi_files(self):
+        """Read credentials from Vault CSI Driver individual files."""
+        creds = {}
+        try:
+            if not os.path.isdir(VAULT_CSI_SECRETS_DIR):
+                logger.warning("Vault CSI secrets dir not found: %s", VAULT_CSI_SECRETS_DIR)
+                return creds
+
+            for filename in os.listdir(VAULT_CSI_SECRETS_DIR):
+                filepath = os.path.join(VAULT_CSI_SECRETS_DIR, filename)
+                if os.path.isfile(filepath):
+                    try:
+                        with open(filepath, 'r') as f:
+                            creds[filename] = f.read().strip()
+                    except Exception as e:
+                        logger.error("Error reading CSI file %s: %s", filepath, e)
+            logger.debug("Read %d credentials from CSI files", len(creds))
+        except Exception as e:
+            logger.error("Error reading CSI directory: %s", e)
+        return creds
+
+
+# Initialize file credential cache for file-based delivery methods
+file_cred_cache = None
+if SECRET_DELIVERY_METHOD in ('vault-agent-sidecar', 'vault-csi-driver'):
+    file_cred_cache = FileCredentialCache(SECRET_DELIVERY_METHOD)
+    file_cred_cache.start()
+
+
+# ─── Vault Client (hvac-based) ──────────────────────────────────────────────
 class VaultClient:
-    """Handles authentication and API calls to Vault using Kubernetes auth."""
+    """Handles authentication and API calls to Vault using Kubernetes auth via hvac."""
 
     def __init__(self, vault_addr, auth_role, mount="kubernetes"):
         self.vault_addr = vault_addr.rstrip("/")
         self.auth_role = auth_role
         self.auth_mount = mount
-        self._token = None
+        self._client = None
         self._token_expires_at = 0
         self._sa_token_path = os.getenv(
             "VAULT_SA_TOKEN_PATH",
@@ -48,50 +163,44 @@ class VaultClient:
             return None
 
     def _login(self):
-        """Authenticate to Vault using Kubernetes auth method."""
+        """Authenticate to Vault using Kubernetes auth method via hvac."""
         jwt = self._read_sa_token()
         if not jwt:
             return False
 
-        url = f"{self.vault_addr}/v1/auth/{self.auth_mount}/login"
-        payload = {"role": self.auth_role, "jwt": jwt}
-
         try:
-            resp = http_requests.post(url, json=payload, timeout=5)
-            resp.raise_for_status()
-            data = resp.json()
-            self._token = data["auth"]["client_token"]
-            lease_duration = data["auth"].get("lease_duration", 600)
+            self._client = hvac.Client(url=self.vault_addr)
+            response = self._client.auth.kubernetes.login(
+                role=self.auth_role,
+                jwt=jwt,
+                mount_point=self.auth_mount
+            )
+            lease_duration = response.get('auth', {}).get('lease_duration', 600)
             # Renew at 80% of lease duration
             self._token_expires_at = time.time() + (lease_duration * 0.8)
-            logger.info("Vault login successful, token valid for %ds", lease_duration)
+            logger.info("Vault login successful via hvac, token valid for %ds", lease_duration)
             return True
         except Exception as e:
             logger.error("Vault login failed: %s", e)
-            self._token = None
+            self._client = None
             return False
 
-    def get_token(self):
-        """Get a valid Vault token, refreshing if necessary."""
-        if self._token and time.time() < self._token_expires_at:
-            return self._token
-        if self._login():
-            return self._token
-        return None
+    def _ensure_authenticated(self):
+        """Ensure we have a valid authenticated client."""
+        if self._client and self._client.is_authenticated() and time.time() < self._token_expires_at:
+            return True
+        return self._login()
 
     def read_static_creds(self, mount, role_name):
         """Read static credentials from Vault."""
-        token = self.get_token()
-        if not token:
+        if not self._ensure_authenticated():
             return None
 
-        url = f"{self.vault_addr}/v1/{mount}/static-cred/{role_name}"
-        headers = {"X-Vault-Token": token}
-
         try:
-            resp = http_requests.get(url, headers=headers, timeout=5)
-            resp.raise_for_status()
-            return resp.json().get("data", {})
+            response = self._client.read(f"{mount}/static-cred/{role_name}")
+            if response:
+                return response.get("data", {})
+            return None
         except Exception as e:
             logger.error("Failed to read static creds: %s", e)
             return None
@@ -101,9 +210,9 @@ class VaultClient:
 vault_client = None
 vault_addr = os.getenv("VAULT_ADDR", "")
 vault_auth_role = os.getenv("VAULT_AUTH_ROLE", "")
-if vault_addr and vault_auth_role and http_requests:
+if vault_addr and vault_auth_role and hvac:
     vault_client = VaultClient(vault_addr, vault_auth_role)
-    logger.info("VaultClient initialized: addr=%s role=%s", vault_addr, vault_auth_role)
+    logger.info("VaultClient initialized with hvac: addr=%s role=%s", vault_addr, vault_auth_role)
 
 
 # ─── Single-Account HTML Template (unchanged) ───────────────────────────────
@@ -199,6 +308,9 @@ HTML_TEMPLATE = """
         .refresh-btn:hover { background: #e6c200; box-shadow: var(--elevation-mid); }
         .refresh-btn.visible { display: inline-block; animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .delivery-method-card { background: linear-gradient(135deg, var(--color-surface-secondary), var(--color-surface-tertiary)); border: 1px solid var(--color-vault); border-radius: var(--radius-medium); padding: var(--spacing-300) var(--spacing-500); margin-bottom: var(--spacing-500); text-align: center; }
+        .delivery-method-label { font-size: var(--font-size-body-100); font-weight: var(--font-weight-semibold); color: var(--color-foreground-faint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--spacing-100); }
+        .delivery-method-value { font-size: var(--font-size-body-300); font-weight: var(--font-weight-bold); color: var(--color-vault); }
         @media (max-width: 640px) { body { padding: var(--spacing-300); } .brand-header { padding: var(--spacing-500); } .brand-header h1 { font-size: var(--font-size-display-300); } .content { padding: var(--spacing-500); } .metadata { flex-direction: column; gap: var(--spacing-300); text-align: center; } }
     </style>
 </head>
@@ -217,6 +329,10 @@ HTML_TEMPLATE = """
         </div>
         <div class="content">
             <h2 class="section-title">Active Credentials</h2>
+            <div class="delivery-method-card">
+                <div class="delivery-method-label">Secret Delivery Method</div>
+                <div class="delivery-method-value">{{ delivery_method_display }}</div>
+            </div>
             <div class="countdown-card" role="timer" aria-label="Time until next credential rotation">
                 <div class="countdown-label">Next rotation in</div>
                 <div class="countdown-display">
@@ -404,6 +520,10 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
 
         .error-banner { background: #fdecea; border: 1px solid #e74c3c; border-radius: var(--radius-medium); padding: var(--spacing-400); margin-bottom: var(--spacing-500); color: #922b21; font-size: var(--font-size-body-200); display: none; }
 
+        .delivery-method-card { background: linear-gradient(135deg, var(--color-surface-secondary), var(--color-surface-tertiary)); border: 1px solid var(--color-vault); border-radius: var(--radius-medium); padding: var(--spacing-300) var(--spacing-500); margin-bottom: var(--spacing-500); text-align: center; }
+        .delivery-method-label { font-size: var(--font-size-body-100); font-weight: var(--font-weight-semibold); color: var(--color-foreground-faint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--spacing-100); }
+        .delivery-method-value { font-size: var(--font-size-body-300); font-weight: var(--font-weight-bold); color: var(--color-vault); }
+
         @media (max-width: 768px) {
             body { padding: var(--spacing-300); }
             .content { padding: var(--spacing-500); }
@@ -430,6 +550,12 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
 
         <div class="content">
             <div id="error-banner" class="error-banner"></div>
+
+            <!-- Secret Delivery Method Badge -->
+            <div class="delivery-method-card">
+                <div class="delivery-method-label">Secret Delivery Method</div>
+                <div class="delivery-method-value">{{ delivery_method_display }}</div>
+            </div>
 
             <!-- Countdown timers -->
             <div class="timers-row">
@@ -626,23 +752,73 @@ DUAL_ACCOUNT_HTML_TEMPLATE = """
 """
 
 
+def _get_credentials_from_source():
+    """Get credentials based on the configured SECRET_DELIVERY_METHOD.
+    
+    Returns a dict with keys: username, password, last_vault_password, 
+    rotation_period, rotation_ttl
+    """
+    # For file-based methods, use cached credentials
+    if file_cred_cache and SECRET_DELIVERY_METHOD in ('vault-agent-sidecar', 'vault-csi-driver'):
+        creds = file_cred_cache.get_credentials()
+        
+        # Map file keys to expected credential keys
+        # For vault-agent-sidecar (key=value file format): LDAP_USERNAME, LDAP_PASSWORD, etc.
+        # For vault-csi-driver (individual files): username, password, etc. OR LDAP_USERNAME, etc.
+        username = creds.get('LDAP_USERNAME') or creds.get('username') or 'Not configured'
+        password = creds.get('LDAP_PASSWORD') or creds.get('password') or 'Not configured'
+        last_vault_password = (creds.get('LDAP_LAST_VAULT_PASSWORD') or 
+                              creds.get('last_vault_password') or 'Not configured')
+        rotation_period = int(creds.get('ROTATION_PERIOD') or 
+                             creds.get('rotation_period') or 
+                             os.getenv('ROTATION_PERIOD', '30'))
+        rotation_ttl = int(creds.get('ROTATION_TTL') or 
+                          creds.get('rotation_ttl') or 
+                          os.getenv('ROTATION_TTL', '0'))
+        
+        return {
+            'username': username,
+            'password': password,
+            'last_vault_password': last_vault_password,
+            'rotation_period': rotation_period,
+            'rotation_ttl': rotation_ttl,
+        }
+    
+    # Default: read from environment variables (vault-secrets-operator mode)
+    return {
+        'username': os.getenv('LDAP_USERNAME', 'Not configured'),
+        'password': os.getenv('LDAP_PASSWORD', 'Not configured'),
+        'last_vault_password': os.getenv('LDAP_LAST_VAULT_PASSWORD', 'Not configured'),
+        'rotation_period': int(os.getenv('ROTATION_PERIOD', '30')),
+        'rotation_ttl': int(os.getenv('ROTATION_TTL', '0')),
+    }
+
+
 @app.route('/')
 def index():
     """Display LDAP credentials."""
     dual_account_mode = os.getenv('DUAL_ACCOUNT_MODE', '').lower() == 'true'
+    delivery_method_display = DELIVERY_METHOD_DISPLAY.get(
+        SECRET_DELIVERY_METHOD, SECRET_DELIVERY_METHOD)
 
     if dual_account_mode:
         # Dual-account mode — page is rendered with JS that polls /api/credentials
-        return render_template_string(DUAL_ACCOUNT_HTML_TEMPLATE, version=APP_VERSION)
+        return render_template_string(
+            DUAL_ACCOUNT_HTML_TEMPLATE, 
+            version=APP_VERSION,
+            delivery_method_display=delivery_method_display
+        )
     else:
-        # Single-account mode — same env-var-based behavior as before
+        # Single-account mode — read credentials based on delivery method
+        creds = _get_credentials_from_source()
         credentials = {
-            'username': os.getenv('LDAP_USERNAME', 'Not configured'),
-            'password': os.getenv('LDAP_PASSWORD', 'Not configured'),
-            'last_vault_password': os.getenv('LDAP_LAST_VAULT_PASSWORD', 'Not configured'),
-            'rotation_period': int(os.getenv('ROTATION_PERIOD', '30')),
-            'rotation_ttl': int(os.getenv('ROTATION_TTL', '0')),
-            'current_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+            'username': creds['username'],
+            'password': creds['password'],
+            'last_vault_password': creds['last_vault_password'],
+            'rotation_period': creds['rotation_period'],
+            'rotation_ttl': creds['rotation_ttl'],
+            'current_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
+            'delivery_method_display': delivery_method_display,
         }
         return render_template_string(HTML_TEMPLATE, version=APP_VERSION, **credentials)
 
