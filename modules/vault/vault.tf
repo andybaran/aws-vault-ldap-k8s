@@ -100,7 +100,7 @@ YAML
     },
     {
       name  = "injector.enabled"
-      value = "false"
+      value = "true"
     },
     {
       name  = "ingress.enabled"

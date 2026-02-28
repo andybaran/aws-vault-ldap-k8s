@@ -42,3 +42,29 @@ resource "vault_kubernetes_auth_backend_role" "ldap_app" {
   token_policies                   = [vault_policy.ldap_static_read.name]
   audience                         = "vault"
 }
+
+# Kubernetes auth backend role for Vault Agent sidecar deployment
+resource "vault_kubernetes_auth_backend_role" "vault_agent_app" {
+  count = var.ldap_dual_account ? 1 : 0
+
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "vault-agent-app-role"
+  bound_service_account_names      = ["ldap-app-vault-agent"]
+  bound_service_account_namespaces = [var.kube_namespace]
+  token_ttl                        = 600
+  token_policies                   = [vault_policy.ldap_static_read.name]
+  audience                         = "vault"
+}
+
+# Kubernetes auth backend role for CSI Driver deployment
+resource "vault_kubernetes_auth_backend_role" "csi_app" {
+  count = var.ldap_dual_account ? 1 : 0
+
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "csi-app-role"
+  bound_service_account_names      = ["ldap-app-csi"]
+  bound_service_account_namespaces = [var.kube_namespace]
+  token_ttl                        = 600
+  token_policies                   = [vault_policy.ldap_static_read.name]
+  audience                         = "vault"
+}

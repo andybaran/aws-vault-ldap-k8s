@@ -51,3 +51,9 @@ variable "vault_app_auth_role" {
   type        = string
   default     = ""
 }
+
+variable "vault_agent_image" {
+  description = "Docker image for Vault Agent sidecar"
+  type        = string
+  default     = "hashicorp/vault:1.18.0"
+}
