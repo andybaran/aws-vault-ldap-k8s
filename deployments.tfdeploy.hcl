@@ -8,18 +8,18 @@ store varset "vault_license" {
   category = "terraform"
 }
 
-deployment_auto_approve "successful_plans" {
-  check {
-    condition = context.success == true
-    reason    = "Operation failed and requires manual intervention."
-  }
-}
+# deployment_auto_approve "successful_plans" {
+#   check {
+#     condition = context.success == true
+#     reason    = "Operation failed and requires manual intervention."
+#   }
+# }
 
-deployment_group "auto_approve" {
-  auto_approve_checks = [
-    deployment_auto_approve.successful_plans,
-  ]
-}
+# deployment_group "auto_approve" {
+#   auto_approve_checks = [
+#     deployment_auto_approve.successful_plans,
+#   ]
+# }
 
 deployment "development" {
   inputs = {
@@ -38,7 +38,7 @@ deployment "development" {
     AWS_SESSION_TOKEN     = store.varset.aws_creds.AWS_SESSION_TOKEN
   }
   #destroy = true
-  deployment_group = deployment_group.auto_approve
+  # deployment_group = deployment_group.auto_approve
 }
 
 
