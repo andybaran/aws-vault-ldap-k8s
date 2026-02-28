@@ -33,6 +33,7 @@ resource "kubernetes_manifest" "ldap_csi_secret_provider" {
       parameters = {
         roleName     = "csi-app-role"
         vaultAddress = "http://vault.${var.kube_namespace}.svc.cluster.local:8200"
+        audience     = "vault"
         objects = yamlencode([
           {
             objectName = "username"

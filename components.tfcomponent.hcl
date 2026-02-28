@@ -164,7 +164,6 @@ output "vault_root_token" {
   description = "Vault root token"
   value       = component.vault_cluster.vault_root_token
   type        = string
-  sensitive   = true
 }
 
 output "vault_ldap_secrets_path" {
