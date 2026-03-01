@@ -52,3 +52,4 @@ deployment "development" {
 # Re-trigger: previous apply had transient EKS token expiry + identity change
 # Retry: deleted orphaned K8s deployments not tracked in TF state
 # Retry: ConfigMap identity change resolved on next apply
+# Fix: Vault Agent uses projected SA token with audience=vault
