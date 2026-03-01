@@ -46,7 +46,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 ---
 
-## Codebase Snapshot (last updated: 2026-02-26, post PR #174)
+## Codebase Snapshot (last updated: 2026-02-28, post V2 multi-delivery deployment)
 
 ### Repository
 
@@ -83,10 +83,10 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 ```
 kube0 (VPC, EKS, security groups)
   ├──► kube1 (nginx ingress, vault SA, vault license secret)
-  │      └──► vault_cluster (Vault Helm HA Raft, init job, VSO, VaultConnection, VaultAuth)
-  │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, static role, K8s auth backend + app auth role)
-  │             │      └──► ldap_app (VaultDynamicSecret CR, Deployment with direct Vault polling, Service, app SA)
-  │             └──► [vault provider configured from vault_cluster outputs]
+  │      └──► vault_cluster (Vault Helm HA Raft, init job, VSO, VaultConnection, VaultAuth, CSI Driver)
+  │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, static roles for svc-rotate-a/b + svc-single + svc-lib, K8s auth backend with 4 roles)
+  │             │      └──► ldap_app (3 deployments: VSO dual-account, Vault Agent sidecar, CSI Driver)
+  │             └──► [vault provider configured from var.vault_address + var.vault_token]
   ├──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS)
   │      └──► windows_config (Windows IPAM, create vault-demo AD user via K8s job)
   │             └──► vault_ldap_secrets (depends on ad_user_job_completed)
@@ -155,24 +155,37 @@ kube0 (VPC, EKS, security groups)
 **Files:**
 - `main.tf` — Single-account mode: `vault_ldap_secret_backend.ad` mounted at `var.secrets_mount_path` (default "ldap"), LDAPS URL, `insecure_tls=true`, schema `ad`, `userattr=cn`, `skip_static_role_import_rotation=true`. Static role for configurable user, rotation period configurable (default 300s). Resources gated with `count = var.ldap_dual_account ? 0 : 1`.
 - `dual_account.tf` — Dual-account mode: registers custom plugin (`vault_generic_endpoint` at `sys/plugins/catalog/secret/ldap_dual_account`), mounts via `vault_mount` with `type = "ldap_dual_account"` at path "ldap", configures LDAP backend, creates dual-account static role with `username=svc-rotate-a`, `username_b=svc-rotate-b`, `dual_account_mode=true`. All resources gated with `count = var.ldap_dual_account ? 1 : 0`.
-- `kubernetes_auth.tf` — `vault_auth_backend` type kubernetes at path "kubernetes", config with EKS host/CA cert. Two roles: `vso-role` (bound to SA `vso-auth`, for VSO) and `ldap-app-role` (bound to SA `ldap-app-vault-auth`, for direct app polling, dual-account mode only). Both have `ldap-static-read` policy, audience `vault`, token TTL 600s.
+- `kubernetes_auth.tf` — `vault_auth_backend` type kubernetes at path "kubernetes", config with EKS host/CA cert. Four roles: `vso-role` (bound to SA `vso-auth`, for VSO), `ldap-app-role` (bound to SA `ldap-app-vault-auth`, for direct app polling), `vault-agent-app-role` (bound to SA `ldap-app-vault-agent`, for Vault Agent sidecar), `csi-app-role` (bound to SA `ldap-app-csi`, for CSI Driver). All have `ldap-static-read` policy, audience `vault`, token TTL 600s.
 - `variables.tf` — `ldap_url`, `ldap_binddn`, `ldap_bindpass` (sensitive), `ldap_userdn`, `secrets_mount_path`, `active_directory_domain`, `static_role_name`, `static_role_username`, `static_role_rotation_period` (default 300), `kubernetes_host`, `kubernetes_ca_cert`, `kube_namespace`, `ad_user_job_completed`, `ldap_dual_account` (bool), `grace_period` (number), `dual_account_static_role_name`, `plugin_sha256`
 - `outputs.tf` — `ldap_secrets_mount_path` (conditional for both modes), `ldap_secrets_mount_accessor`, `static_role_name` (conditional), `static_role_credentials_path`, `static_role_policy_name`, `vault_app_auth_role_name` (returns "ldap-app-role" when dual-account, "" otherwise)
 
-#### `modules/ldap_app/` — Python App Deployment + VSO Integration
+#### `modules/ldap_app/` — Python App Deployments (3 delivery methods) + VSO Integration
 **Providers:** kubernetes, time
 
 **Files:**
-- `ldap_app.tf` — `VaultDynamicSecret` CR: reads from `<mount>/static-cred/<role>`, `allowStaticCreds=true`, `refreshAfter` at 80% of rotation period, creates K8s secret `ldap-credentials`, triggers rolling restart of deployment. When `ldap_dual_account=true`: creates K8s service account `ldap-app-vault-auth` for direct Vault polling, adds env vars `VAULT_ADDR` (constructed from K8s service DNS), `VAULT_AUTH_ROLE`, `LDAP_MOUNT_PATH`, `LDAP_STATIC_ROLE_NAME`, and 7 additional dual-account env vars from the K8s secret. `kubernetes_deployment_v1.ldap_app`: 2 replicas, image `ghcr.io/andybaran/vault-ldap-demo:latest`, port 8080, liveness/readiness probes on `/health`, `service_account_name` set to app SA in dual-account mode. `kubernetes_service_v1`: LoadBalancer, port 80→8080. Outputs: `ldap_app_service_name`, `ldap_app_service_type`, `ldap_app_url`
-- `variables.tf` — `kube_namespace`, `ldap_mount_path`, `ldap_static_role_name`, `vso_vault_auth_name`, `static_role_rotation_period`, `ldap_app_image`, `ldap_dual_account` (bool), `grace_period` (number), `vault_app_auth_role` (string, default "")
+- `ldap_app.tf` — VSO delivery: `VaultDynamicSecret` CR, K8s secret `ldap-credentials`, rolling restart, dual-account direct Vault polling SA, env vars, `kubernetes_deployment_v1.ldap_app` (2 replicas), `kubernetes_service_v1` (LoadBalancer). Uses `svc-rotate-a`/`svc-rotate-b`.
+- `vault_agent_app.tf` — Vault Agent sidecar delivery: SA `ldap-app-vault-agent`, ConfigMap with Vault Agent HCL configs (`token_path = "/var/run/secrets/vault/token"`), projected SA token volume with `audience: "vault"`, init container + sidecar + app container, `kubernetes_service_v1` (LoadBalancer). Uses `svc-single`.
+- `csi_app.tf` — CSI Driver delivery: SA `ldap-app-csi`, `SecretProviderClass` with `audience: "vault"` + `roleName: csi-app-role`, deployment with CSI volume mount at `/vault/secrets`, `kubernetes_service_v1` (LoadBalancer). Uses `svc-lib`.
+- `variables.tf` — `kube_namespace`, `ldap_mount_path`, `ldap_static_role_name`, `vso_vault_auth_name`, `static_role_rotation_period`, `ldap_app_image`, `ldap_dual_account` (bool), `grace_period` (number), `vault_app_auth_role` (string), `vault_agent_image` (string)
 
 ### Python Web Application (`python-app/`)
 
-Flask app (`app.py`, ~818 lines) displaying LDAP credentials in two modes:
+Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three delivery modes:
 
-**Single-account mode** (default): Reads env vars (`LDAP_USERNAME`, `LDAP_PASSWORD`, `LDAP_LAST_VAULT_PASSWORD`, `ROTATION_PERIOD`, `ROTATION_TTL`). HDS-styled UI with Vault logo SVG, live countdown timer, progress bar, refresh button.
+**VSO mode** (`SECRET_DELIVERY_METHOD=vault-secrets-operator`): Dual-account, polls Vault directly via `VaultClient` (hvac), timeline UI with Account A/B.
 
-**Dual-account mode** (`DUAL_ACCOUNT_MODE=true`): Polls Vault directly via `VaultClient` class for real-time credential display.
+**Vault Agent sidecar mode** (`SECRET_DELIVERY_METHOD=vault-agent-sidecar`): Reads key=value file rendered by Vault Agent at `SECRETS_FILE_PATH`. Uses `FileCredentialCache` with 5s refresh.
+
+**CSI Driver mode** (`SECRET_DELIVERY_METHOD=vault-csi-driver`): Reads individual files from CSI-mounted directory at `VAULT_CSI_SECRETS_DIR`. Uses `FileCredentialCache` with 5s refresh.
+
+**Common:**
+- `VaultClient` class: authenticates via K8s SA token to Vault K8s auth, hvac-based
+- `FileCredentialCache`: background thread reads file-based creds every 5s
+- HDS-styled UI with delivery method badge, live countdown timer
+- Health check at `/health`, credentials API at `/api/credentials`
+- `Dockerfile`: multi-stage build, python:3.11-slim, non-root UID 1000, port 8080
+- `requirements.txt`: Flask==3.1.0, Werkzeug==3.1.3, requests==2.32.3, hvac==2.3.0
+- Image: `ghcr.io/andybaran/vault-ldap-demo:latest`
 - `VaultClient`: Authenticates via K8s service account token (`/var/run/secrets/kubernetes.io/serviceaccount/token`) to Vault K8s auth, caches token with 80% lease renewal, reads `GET /v1/<mount>/static-cred/<role>` on demand.
 - `/api/credentials` JSON endpoint: Returns live data from Vault (active account, standby account during grace period, TTL, rotation state).
 - Timeline UI: SVG-style horizontal rows for Account A / Account B with color-coded phases (Active=#B3D9FF blue, Grace=#FFFFCC yellow, Inactive=#FFB3B3 red), animated vertical marker tracking current position, credential cards, JS polls every 5s with 1s interpolation.
@@ -221,10 +234,12 @@ Flask app (`app.py`, ~818 lines) displaying LDAP credentials in two modes:
 - **Vault static role names:** match AD usernames (svc-rotate-a, svc-rotate-b, svc-single, svc-lib)
 - **VSO auth role:** vso-role (bound to SA `vso-auth`)
 - **App direct polling auth role:** ldap-app-role (bound to SA `ldap-app-vault-auth`, dual-account mode only)
+- **Vault Agent auth role:** vault-agent-app-role (bound to SA `ldap-app-vault-agent`)
+- **CSI auth role:** csi-app-role (bound to SA `ldap-app-csi`)
 - **VSO VaultAuth/VaultConnection names:** "default"
 - **Kubernetes auth path in Vault:** "kubernetes"
-- **Rotation period:** 300s (set in `components.tfcomponent.hcl` for both `vault_ldap_secrets` and `ldap_app`)
-- **Grace period:** 60s (default in `variables.tfcomponent.hcl`, dual-account mode only)
+- **Rotation period:** 100s (set in `components.tfcomponent.hcl`)
+- **Grace period:** 20s (set in `deployments.tfdeploy.hcl`, dual-account mode only)
 - **Deployment region:** us-east-2
 - **Customer name:** fidelity (truncated to 4 chars: "fide")
 - **Instance type:** c5.xlarge (for deployment), t3.medium (default in module)
@@ -239,6 +254,13 @@ Flask app (`app.py`, ~818 lines) displaying LDAP credentials in two modes:
 
 1. **Vault root token exposed as nonsensitive** — `vault_root_token` output uses `nonsensitive()` wrapper. Acceptable for demo but noted.
 2. **Terraform Stacks identity tracking** — `kubernetes_deployment_v1` can trigger "Unexpected Identity Change" errors on first apply after spec changes (provider returns real identity where nulls were stored). Transient; retry resolves it.
+3. **Vault provider decoupled from vault_cluster outputs** — Vault provider uses `var.vault_address` and `var.vault_token` stored in varset `varset-fMrcJCnqUd6q4D9C` to avoid Stacks unknown-output dependency problem.
+4. **Vault Agent requires projected SA token** — Vault Agent kubernetes auto_auth does NOT support `token_audiences`. Must project a K8s SA token with `audience: "vault"` as a volume and set `token_path` to the projected token path.
+
+#### Resolved (V2 PRs #184-#189)
+- V2 multi-delivery refactoring complete: VSO, Vault Agent sidecar, CSI Driver all deployed and verified
+- Python app refactored to hvac + FileCredentialCache for file-based delivery methods
+- 22 pytest tests added, 5 documentation files created
 
 #### Resolved (PR #174)
 - ~~Grace period countdown always shows 0~~ — Root cause: VSO refresh cycle + pod restart exceeded grace period. Fixed by switching to direct Vault API polling from the app (PRs #172-#174).
