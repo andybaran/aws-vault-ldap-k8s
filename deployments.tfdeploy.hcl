@@ -59,3 +59,5 @@ deployment "development" {
 # Retry: dual-account roles after DC rebuild
 
 # Retry 2: DC confirmed online, LDAPS working
+
+# Retry 3: K8s Unexpected Identity Change transient error
