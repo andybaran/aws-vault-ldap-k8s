@@ -55,3 +55,5 @@ deployment "development" {
 # Fix: Vault Agent uses projected SA token with audience=vault
 
 # Trigger: dual-account Vault Agent + CSI deployment
+
+# Retry: dual-account roles after DC rebuild
