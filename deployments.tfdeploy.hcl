@@ -57,3 +57,5 @@ deployment "development" {
 # Trigger: dual-account Vault Agent + CSI deployment
 
 # Retry: dual-account roles after DC rebuild
+
+# Retry 2: DC confirmed online, LDAPS working
