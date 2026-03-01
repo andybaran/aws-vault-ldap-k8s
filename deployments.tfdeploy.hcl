@@ -61,3 +61,4 @@ deployment "development" {
 # Retry 2: DC confirmed online, LDAPS working
 
 # Retry 3: K8s Unexpected Identity Change transient error
+# Retry 4: deleted conflicting K8s resources
