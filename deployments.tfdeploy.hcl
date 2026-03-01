@@ -53,3 +53,5 @@ deployment "development" {
 # Retry: deleted orphaned K8s deployments not tracked in TF state
 # Retry: ConfigMap identity change resolved on next apply
 # Fix: Vault Agent uses projected SA token with audience=vault
+
+# Trigger: dual-account Vault Agent + CSI deployment
