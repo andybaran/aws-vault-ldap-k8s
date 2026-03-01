@@ -280,6 +280,13 @@ resource "kubernetes_deployment_v1" "ldap_app_vault_agent" {
             read_only  = true
           }
 
+          # Projected SA token for direct Vault API polling (dual-account mode)
+          volume_mount {
+            name       = "vault-token"
+            mount_path = "/var/run/secrets/vault"
+            read_only  = true
+          }
+
           resources {
             limits = {
               cpu    = "200m"

@@ -868,15 +868,27 @@ def api_credentials():
 
             username = creds.get('LDAP_USERNAME') or creds.get('username', '')
             password = creds.get('LDAP_PASSWORD') or creds.get('password', '')
+            last_rotation = creds.get('LDAP_LAST_VAULT_PASSWORD') or creds.get('last_vault_rotation', '')
+            rot_period = int(creds.get('ROTATION_PERIOD') or creds.get('rotation_period', rotation_period))
+            # Calculate TTL dynamically from last_vault_rotation + rotation_period
+            computed_ttl = int(creds.get('ROTATION_TTL') or creds.get('ttl', 0))
+            if last_rotation:
+                try:
+                    from datetime import datetime, timezone
+                    rot_time = datetime.fromisoformat(last_rotation.replace('Z', '+00:00'))
+                    elapsed = (datetime.now(timezone.utc) - rot_time).total_seconds()
+                    computed_ttl = max(0, int(rot_period - elapsed))
+                except Exception:
+                    pass
             return jsonify({
                 'username': username,
                 'password': password,
                 'active_account': creds.get('ACTIVE_ACCOUNT') or creds.get('active_account', 'a'),
                 'rotation_state': creds.get('ROTATION_STATE') or creds.get('rotation_state', 'active'),
                 'dual_account_mode': True,
-                'rotation_period': int(creds.get('ROTATION_PERIOD') or creds.get('rotation_period', rotation_period)),
-                'ttl': int(creds.get('ROTATION_TTL') or creds.get('ttl', 0)),
-                'last_vault_rotation': creds.get('LDAP_LAST_VAULT_PASSWORD') or creds.get('last_vault_rotation', ''),
+                'rotation_period': rot_period,
+                'ttl': computed_ttl,
+                'last_vault_rotation': last_rotation,
                 'grace_period': grace_period,
                 'grace_period_end': creds.get('GRACE_PERIOD_END') or creds.get('grace_period_end', ''),
                 'standby_username': creds.get('STANDBY_USERNAME') or creds.get('standby_username', ''),
