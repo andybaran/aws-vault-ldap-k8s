@@ -46,7 +46,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 ---
 
-## Codebase Snapshot (last updated: 2026-02-28, post V2 multi-delivery deployment)
+## Codebase Snapshot (last updated: 2026-03-01, post Phase 5 dual-account expansion)
 
 ### Repository
 
@@ -84,7 +84,7 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 kube0 (VPC, EKS, security groups)
   ├──► kube1 (nginx ingress, vault SA, vault license secret)
   │      └──► vault_cluster (Vault Helm HA Raft, init job, VSO, VaultConnection, VaultAuth, CSI Driver)
-  │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, static roles for svc-rotate-a/b + svc-single + svc-lib, K8s auth backend with 4 roles)
+  │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, 3 dual-account static roles: dual-rotation-demo (a/b), vault-agent-dual-role (c/d), csi-dual-role (e/f), K8s auth backend with 4 roles)
   │             │      └──► ldap_app (3 deployments: VSO dual-account, Vault Agent sidecar, CSI Driver)
   │             └──► [vault provider configured from var.vault_address + var.vault_token]
   ├──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS)
@@ -131,7 +131,7 @@ kube0 (VPC, EKS, security groups)
 **Providers:** aws, tls, random
 
 **Files:**
-- `main.tf` — Windows Server 2022 EC2 (`data.aws_ami.windows_2022`), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 4 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a, svc-rotate-b, svc-single, svc-lib). Elastic IP attached. **`time_sleep.wait_for_dc_reboot` (10m) ensures reboot cycle completes before outputs become available.**
+- `main.tf` — Windows Server 2022 EC2 (`data.aws_ami.windows_2022`), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 8 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a through svc-rotate-f, svc-single, svc-lib). Elastic IP attached. **`time_sleep.wait_for_dc_reboot` (10m) ensures reboot cycle completes before outputs become available.**
 - `variables.tf` — `allowlist_ip`, `prefix` (default "boundary-rdp"), `aws_key_pair_name`, `ami` (unused default), `domain_controller_instance_type`, `root_block_device_size` (128GB), `active_directory_domain` (mydomain.local), `active_directory_netbios_name` (mydomain), `only_ntlmv2`, `only_kerberos`, `vpc_id`, `subnet_id`, `shared_internal_sg_id`
 - `outputs.tf` — `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password` (decrypted admin pw, nonsensitive), `aws_keypair_name`, `static_roles` (map of test account username/password/dn from `random_password`). **All outputs depend on `time_sleep.wait_for_dc_reboot`.**
 - `README.md` — Documents the DC setup and PowerShell user_data
@@ -154,7 +154,7 @@ kube0 (VPC, EKS, security groups)
 
 **Files:**
 - `main.tf` — Single-account mode: `vault_ldap_secret_backend.ad` mounted at `var.secrets_mount_path` (default "ldap"), LDAPS URL, `insecure_tls=true`, schema `ad`, `userattr=cn`, `skip_static_role_import_rotation=true`. Static role for configurable user, rotation period configurable (default 300s). Resources gated with `count = var.ldap_dual_account ? 0 : 1`.
-- `dual_account.tf` — Dual-account mode: registers custom plugin (`vault_generic_endpoint` at `sys/plugins/catalog/secret/ldap_dual_account`), mounts via `vault_mount` with `type = "ldap_dual_account"` at path "ldap", configures LDAP backend, creates dual-account static role with `username=svc-rotate-a`, `username_b=svc-rotate-b`, `dual_account_mode=true`. All resources gated with `count = var.ldap_dual_account ? 1 : 0`.
+- `dual_account.tf` — Dual-account mode: registers custom plugin (`vault_generic_endpoint` at `sys/plugins/catalog/secret/ldap_dual_account`), mounts via `vault_mount` with `type = "ldap_dual_account"` at path "ldap", configures LDAP backend, creates 3 dual-account static roles: `dual-rotation-demo` (svc-rotate-a/b for VSO), `vault-agent-dual-role` (svc-rotate-c/d for Vault Agent), `csi-dual-role` (svc-rotate-e/f for CSI). All resources gated with `count = var.ldap_dual_account ? 1 : 0`.
 - `kubernetes_auth.tf` — `vault_auth_backend` type kubernetes at path "kubernetes", config with EKS host/CA cert. Four roles: `vso-role` (bound to SA `vso-auth`, for VSO), `ldap-app-role` (bound to SA `ldap-app-vault-auth`, for direct app polling), `vault-agent-app-role` (bound to SA `ldap-app-vault-agent`, for Vault Agent sidecar), `csi-app-role` (bound to SA `ldap-app-csi`, for CSI Driver). All have `ldap-static-read` policy, audience `vault`, token TTL 600s.
 - `variables.tf` — `ldap_url`, `ldap_binddn`, `ldap_bindpass` (sensitive), `ldap_userdn`, `secrets_mount_path`, `active_directory_domain`, `static_role_name`, `static_role_username`, `static_role_rotation_period` (default 300), `kubernetes_host`, `kubernetes_ca_cert`, `kube_namespace`, `ad_user_job_completed`, `ldap_dual_account` (bool), `grace_period` (number), `dual_account_static_role_name`, `plugin_sha256`
 - `outputs.tf` — `ldap_secrets_mount_path` (conditional for both modes), `ldap_secrets_mount_accessor`, `static_role_name` (conditional), `static_role_credentials_path`, `static_role_policy_name`, `vault_app_auth_role_name` (returns "ldap-app-role" when dual-account, "" otherwise)
@@ -164,8 +164,8 @@ kube0 (VPC, EKS, security groups)
 
 **Files:**
 - `ldap_app.tf` — VSO delivery: `VaultDynamicSecret` CR, K8s secret `ldap-credentials`, rolling restart, dual-account direct Vault polling SA, env vars, `kubernetes_deployment_v1.ldap_app` (2 replicas), `kubernetes_service_v1` (LoadBalancer). Uses `svc-rotate-a`/`svc-rotate-b`.
-- `vault_agent_app.tf` — Vault Agent sidecar delivery: SA `ldap-app-vault-agent`, ConfigMap with Vault Agent HCL configs (`token_path = "/var/run/secrets/vault/token"`), projected SA token volume with `audience: "vault"`, init container + sidecar + app container, `kubernetes_service_v1` (LoadBalancer). Uses `svc-single`.
-- `csi_app.tf` — CSI Driver delivery: SA `ldap-app-csi`, `SecretProviderClass` with `audience: "vault"` + `roleName: csi-app-role`, deployment with CSI volume mount at `/vault/secrets`, `kubernetes_service_v1` (LoadBalancer). Uses `svc-lib`.
+- `vault_agent_app.tf` — Vault Agent sidecar delivery: SA `ldap-app-vault-agent`, ConfigMap with Vault Agent HCL configs (Consul Template conditionals for dual-account standby_* fields during grace_period), projected SA token volume with `audience: "vault"`, init container + sidecar + app container, dual-account env vars (DUAL_ACCOUNT_MODE, VAULT_ADDR, LDAP_MOUNT_PATH=ldap, LDAP_STATIC_ROLE_NAME=vault-agent-dual-role), `kubernetes_service_v1` (LoadBalancer). Uses `svc-rotate-c`/`svc-rotate-d`.
+- `csi_app.tf` — CSI Driver delivery: SA `ldap-app-csi`, `SecretProviderClass` with full JSON response object + per-field objects for `csi-dual-role`, projected SA token volume for direct Vault polling, dual-account env vars, deployment with CSI volume mount at `/vault/secrets`, `kubernetes_service_v1` (LoadBalancer). Uses `svc-rotate-e`/`svc-rotate-f`.
 - `variables.tf` — `kube_namespace`, `ldap_mount_path`, `ldap_static_role_name`, `vso_vault_auth_name`, `static_role_rotation_period`, `ldap_app_image`, `ldap_dual_account` (bool), `grace_period` (number), `vault_app_auth_role` (string), `vault_agent_image` (string)
 
 ### Python Web Application (`python-app/`)
@@ -228,10 +228,13 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 
 - **VPC CIDR:** 10.0.0.0/16
 - **AD Domain:** mydomain.local (NetBIOS: mydomain)
-- **AD Users managed by Vault:** svc-rotate-a, svc-rotate-b, svc-single, svc-lib (created by DC user_data)
+- **AD Users managed by Vault:** svc-rotate-a through svc-rotate-f, svc-single, svc-lib (created by DC user_data)
 - **App displays account:** svc-rotate-a by default (configurable via `ldap_app_account_name` stack variable)
 - **LDAP bind DN:** CN=Administrator,CN=Users,DC=mydomain,DC=local
-- **Vault static role names:** match AD usernames (svc-rotate-a, svc-rotate-b, svc-single, svc-lib)
+- **Vault dual-account static roles:**
+  - `dual-rotation-demo` (svc-rotate-a/svc-rotate-b) → VSO delivery
+  - `vault-agent-dual-role` (svc-rotate-c/svc-rotate-d) → Vault Agent sidecar delivery
+  - `csi-dual-role` (svc-rotate-e/svc-rotate-f) → CSI Driver delivery
 - **VSO auth role:** vso-role (bound to SA `vso-auth`)
 - **App direct polling auth role:** ldap-app-role (bound to SA `ldap-app-vault-auth`, dual-account mode only)
 - **Vault Agent auth role:** vault-agent-app-role (bound to SA `ldap-app-vault-agent`)
@@ -248,7 +251,10 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 - **Custom plugin image:** `ghcr.io/andybaran/vault-with-openldap-plugin:dual-account-rotation` (used when `ldap_dual_account=true`)
 - **Plugin binary:** `/vault/plugins/vault-plugin-secrets-openldap` (SHA256: `e71b4bec10963fe5f704d710f34be5a933330126799541fd1bd7b0e3536a8dad`)
 - **Plugin name in Vault catalog:** `ldap_dual_account`
-- **Dual-account static role:** `dual-rotation-demo` (username=svc-rotate-a, username_b=svc-rotate-b)
+- **Dual-account static roles:**
+  - `dual-rotation-demo` (username=svc-rotate-a, username_b=svc-rotate-b) → VSO
+  - `vault-agent-dual-role` (username=svc-rotate-c, username_b=svc-rotate-d) → Vault Agent
+  - `csi-dual-role` (username=svc-rotate-e, username_b=svc-rotate-f) → CSI Driver
 
 ### Known Issues / Notes
 
