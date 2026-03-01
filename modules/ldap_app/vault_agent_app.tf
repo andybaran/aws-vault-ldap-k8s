@@ -56,11 +56,21 @@ resource "kubernetes_config_map_v1" "vault_agent_config" {
 
       template {
         contents = <<TMPL
-      LDAP_USERNAME={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.username }}{{ end }}
-      LDAP_PASSWORD={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.password }}{{ end }}
-      LDAP_LAST_VAULT_PASSWORD={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.last_vault_rotation }}{{ end }}
-      ROTATION_PERIOD={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.rotation_period }}{{ end }}
-      ROTATION_TTL={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.ttl }}{{ end }}
+      {{ with secret "ldap/static-cred/vault-agent-dual-role" }}
+      LDAP_USERNAME={{ .Data.username }}
+      LDAP_PASSWORD={{ .Data.password }}
+      LDAP_LAST_VAULT_PASSWORD={{ .Data.last_vault_rotation }}
+      ROTATION_PERIOD={{ .Data.rotation_period }}
+      ROTATION_TTL={{ .Data.ttl }}
+      ACTIVE_ACCOUNT={{ .Data.active_account }}
+      ROTATION_STATE={{ .Data.rotation_state }}
+      DUAL_ACCOUNT_MODE={{ .Data.dual_account_mode }}
+      {{ if eq .Data.rotation_state "grace_period" }}
+      STANDBY_USERNAME={{ .Data.standby_username }}
+      STANDBY_PASSWORD={{ .Data.standby_password }}
+      GRACE_PERIOD_END={{ .Data.grace_period_end }}
+      {{ end }}
+      {{ end }}
       TMPL
         destination = "/vault/secrets/ldap-creds"
       }
@@ -91,11 +101,21 @@ resource "kubernetes_config_map_v1" "vault_agent_config" {
 
       template {
         contents = <<TMPL
-      LDAP_USERNAME={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.username }}{{ end }}
-      LDAP_PASSWORD={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.password }}{{ end }}
-      LDAP_LAST_VAULT_PASSWORD={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.last_vault_rotation }}{{ end }}
-      ROTATION_PERIOD={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.rotation_period }}{{ end }}
-      ROTATION_TTL={{ with secret "ldap/static-cred/svc-single" }}{{ .Data.ttl }}{{ end }}
+      {{ with secret "ldap/static-cred/vault-agent-dual-role" }}
+      LDAP_USERNAME={{ .Data.username }}
+      LDAP_PASSWORD={{ .Data.password }}
+      LDAP_LAST_VAULT_PASSWORD={{ .Data.last_vault_rotation }}
+      ROTATION_PERIOD={{ .Data.rotation_period }}
+      ROTATION_TTL={{ .Data.ttl }}
+      ACTIVE_ACCOUNT={{ .Data.active_account }}
+      ROTATION_STATE={{ .Data.rotation_state }}
+      DUAL_ACCOUNT_MODE={{ .Data.dual_account_mode }}
+      {{ if eq .Data.rotation_state "grace_period" }}
+      STANDBY_USERNAME={{ .Data.standby_username }}
+      STANDBY_PASSWORD={{ .Data.standby_password }}
+      GRACE_PERIOD_END={{ .Data.grace_period_end }}
+      {{ end }}
+      {{ end }}
       TMPL
         destination = "/vault/secrets/ldap-creds"
       }
@@ -303,6 +323,41 @@ resource "kubernetes_deployment_v1" "ldap_app_vault_agent" {
           env {
             name  = "SECRETS_FILE_PATH"
             value = "/vault/secrets/ldap-creds"
+          }
+
+          env {
+            name  = "DUAL_ACCOUNT_MODE"
+            value = "true"
+          }
+
+          env {
+            name  = "VAULT_ADDR"
+            value = "http://vault.${var.kube_namespace}.svc.cluster.local:8200"
+          }
+
+          env {
+            name  = "VAULT_AUTH_ROLE"
+            value = "vault-agent-app-role"
+          }
+
+          env {
+            name  = "LDAP_MOUNT_PATH"
+            value = var.ldap_mount_path
+          }
+
+          env {
+            name  = "LDAP_STATIC_ROLE_NAME"
+            value = "vault-agent-dual-role"
+          }
+
+          env {
+            name  = "GRACE_PERIOD"
+            value = tostring(var.grace_period)
+          }
+
+          env {
+            name  = "ROTATION_PERIOD"
+            value = tostring(var.static_role_rotation_period)
           }
         }
       }

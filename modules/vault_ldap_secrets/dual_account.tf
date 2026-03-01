@@ -100,3 +100,47 @@ resource "vault_generic_endpoint" "ldap_single_static_role" {
 
   depends_on = [vault_generic_endpoint.ldap_config]
 }
+
+# Dual-account static role for Vault Agent sidecar (svc-rotate-c / svc-rotate-d)
+resource "vault_generic_endpoint" "ldap_vault_agent_dual_role" {
+  count = var.ldap_dual_account ? 1 : 0
+
+  path = "${var.secrets_mount_path}/static-role/vault-agent-dual-role"
+
+  disable_read   = true
+  disable_delete = false
+
+  data_json = jsonencode({
+    username          = "svc-rotate-c"
+    dn                = "CN=svc-rotate-c,CN=Users,DC=mydomain,DC=local"
+    username_b        = "svc-rotate-d"
+    dn_b              = "CN=svc-rotate-d,CN=Users,DC=mydomain,DC=local"
+    rotation_period   = "${var.static_role_rotation_period}s"
+    dual_account_mode = true
+    grace_period      = "${var.grace_period}s"
+  })
+
+  depends_on = [vault_generic_endpoint.ldap_config]
+}
+
+# Dual-account static role for CSI Driver (svc-rotate-e / svc-rotate-f)
+resource "vault_generic_endpoint" "ldap_csi_dual_role" {
+  count = var.ldap_dual_account ? 1 : 0
+
+  path = "${var.secrets_mount_path}/static-role/csi-dual-role"
+
+  disable_read   = true
+  disable_delete = false
+
+  data_json = jsonencode({
+    username          = "svc-rotate-e"
+    dn                = "CN=svc-rotate-e,CN=Users,DC=mydomain,DC=local"
+    username_b        = "svc-rotate-f"
+    dn_b              = "CN=svc-rotate-f,CN=Users,DC=mydomain,DC=local"
+    rotation_period   = "${var.static_role_rotation_period}s"
+    dual_account_mode = true
+    grace_period      = "${var.grace_period}s"
+  })
+
+  depends_on = [vault_generic_endpoint.ldap_config]
+}
