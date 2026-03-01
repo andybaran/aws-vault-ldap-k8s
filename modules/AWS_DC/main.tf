@@ -66,7 +66,7 @@ resource "random_string" "DSRMPassword" {
 
 // Generate random passwords for test service accounts created during post-promotion boot
 resource "random_password" "test_user_password" {
-  for_each = toset(["svc-rotate-a", "svc-rotate-b", "svc-single", "svc-lib"])
+  for_each = toset(["svc-rotate-a", "svc-rotate-b", "svc-rotate-c", "svc-rotate-d", "svc-rotate-e", "svc-rotate-f", "svc-single", "svc-lib"])
 
   length           = 16
   override_special = "!@#"
@@ -126,6 +126,10 @@ resource "aws_instance" "domain_controller" {
                     $testUsers = @{
                       "svc-rotate-a" = "${random_password.test_user_password["svc-rotate-a"].result}"
                       "svc-rotate-b" = "${random_password.test_user_password["svc-rotate-b"].result}"
+                      "svc-rotate-c" = "${random_password.test_user_password["svc-rotate-c"].result}"
+                      "svc-rotate-d" = "${random_password.test_user_password["svc-rotate-d"].result}"
+                      "svc-rotate-e" = "${random_password.test_user_password["svc-rotate-e"].result}"
+                      "svc-rotate-f" = "${random_password.test_user_password["svc-rotate-f"].result}"
                       "svc-single"   = "${random_password.test_user_password["svc-single"].result}"
                       "svc-lib"      = "${random_password.test_user_password["svc-lib"].result}"
                     }

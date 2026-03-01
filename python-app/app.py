@@ -9,6 +9,7 @@ Also supports dual-account mode with direct Vault API polling.
 """
 
 import os
+import json
 import time
 import threading
 import logging
@@ -852,6 +853,36 @@ def api_credentials():
                 'standby_dn': data.get('standby_dn', ''),
             })
 
+    # Fallback to file-based credentials (agent sidecar / CSI driver)
+    if file_cred_cache:
+        creds = file_cred_cache.get_credentials()
+        if creds:
+            # Parse JSON blob for CSI full-response mode
+            json_blob = creds.get('ldap-creds.json', '')
+            if json_blob:
+                try:
+                    parsed = json.loads(json_blob)
+                    creds.update(parsed)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            username = creds.get('LDAP_USERNAME') or creds.get('username', '')
+            password = creds.get('LDAP_PASSWORD') or creds.get('password', '')
+            return jsonify({
+                'username': username,
+                'password': password,
+                'active_account': creds.get('ACTIVE_ACCOUNT') or creds.get('active_account', 'a'),
+                'rotation_state': creds.get('ROTATION_STATE') or creds.get('rotation_state', 'active'),
+                'dual_account_mode': True,
+                'rotation_period': int(creds.get('ROTATION_PERIOD') or creds.get('rotation_period', rotation_period)),
+                'ttl': int(creds.get('ROTATION_TTL') or creds.get('ttl', 0)),
+                'last_vault_rotation': creds.get('LDAP_LAST_VAULT_PASSWORD') or creds.get('last_vault_rotation', ''),
+                'grace_period': grace_period,
+                'grace_period_end': creds.get('GRACE_PERIOD_END') or creds.get('grace_period_end', ''),
+                'standby_username': creds.get('STANDBY_USERNAME') or creds.get('standby_username', ''),
+                'standby_password': creds.get('STANDBY_PASSWORD') or creds.get('standby_password', ''),
+                'source': 'file_cache_fallback',
+            })
     # Fallback to env vars
     return jsonify({
         'username': os.getenv('LDAP_USERNAME', 'Not configured'),
