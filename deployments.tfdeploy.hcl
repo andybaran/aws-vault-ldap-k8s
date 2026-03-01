@@ -62,3 +62,4 @@ deployment "development" {
 
 # Retry 3: K8s Unexpected Identity Change transient error
 # Retry 4: deleted conflicting K8s resources
+# Retry: K8s identity change - vault agent deployment
