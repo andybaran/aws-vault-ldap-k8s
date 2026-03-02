@@ -111,48 +111,115 @@ resource "aws_instance" "domain_controller" {
 
   user_data = <<EOF
                 <powershell>
-                  # Check if this is a post-promotion reboot (AD DS is running)
-                  $ADDSRunning = Get-Service NTDS -ErrorAction SilentlyContinue
-                  if ($ADDSRunning -and $ADDSRunning.Status -eq 'Running') {
-                    # Post-promotion boot: install AD CS to enable LDAPS on port 636
-                    $AdcsFeature = Get-WindowsFeature -Name ADCS-Cert-Authority
-                    if (-not $AdcsFeature.Installed) {
-                      Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools
-                      Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -Force
-                      Restart-Service NTDS -Force
+                  # Log all output to a transcript file for debugging
+                  $logFile = "C:\user_data.log"
+                  Start-Transcript -Path $logFile -Append -Force
+                  $ErrorActionPreference = "Continue"
+
+                  try {
+                    Write-Output "=== User data script started at $(Get-Date -Format o) ==="
+                    Write-Output "OS: $((Get-CimInstance Win32_OperatingSystem).Caption)"
+                    Write-Output "Hostname: $env:COMPUTERNAME"
+
+                    # Enable WinRM for remote debugging from VPC
+                    try {
+                      Enable-PSRemoting -Force -SkipNetworkProfileCheck 2>&1
+                      Set-Item WSMan:\localhost\Client\TrustedHosts -Value '*' -Force 2>&1
+                      Write-Output "WinRM enabled successfully"
+                    } catch {
+                      Write-Output "WinRM setup warning: $_"
                     }
 
-                    # Create test service accounts for integration testing
-                    Import-Module ActiveDirectory
-                    $testUsers = @{
-                      "svc-rotate-a" = "${random_password.test_user_password["svc-rotate-a"].result}"
-                      "svc-rotate-b" = "${random_password.test_user_password["svc-rotate-b"].result}"
-                      "svc-rotate-c" = "${random_password.test_user_password["svc-rotate-c"].result}"
-                      "svc-rotate-d" = "${random_password.test_user_password["svc-rotate-d"].result}"
-                      "svc-rotate-e" = "${random_password.test_user_password["svc-rotate-e"].result}"
-                      "svc-rotate-f" = "${random_password.test_user_password["svc-rotate-f"].result}"
-                      "svc-single"   = "${random_password.test_user_password["svc-single"].result}"
-                      "svc-lib"      = "${random_password.test_user_password["svc-lib"].result}"
-                    }
-                    foreach ($user in $testUsers.GetEnumerator()) {
-                      if (-not (Get-ADUser -Filter "sAMAccountName -eq '$($user.Key)'" -ErrorAction SilentlyContinue)) {
-                        $secPw = ConvertTo-SecureString $user.Value -AsPlainText -Force
-                        New-ADUser -Name $user.Key `
-                          -SamAccountName $user.Key `
-                          -UserPrincipalName "$($user.Key)@${var.active_directory_domain}" `
-                          -AccountPassword $secPw `
-                          -Enabled $true `
-                          -PasswordNeverExpires $true `
-                          -CannotChangePassword $false `
-                          -Path "CN=Users,DC=${join(",DC=", split(".", var.active_directory_domain))}"
+                    # Check if this is a post-promotion reboot (AD DS is running)
+                    $ADDSRunning = Get-Service NTDS -ErrorAction SilentlyContinue
+                    if ($ADDSRunning -and $ADDSRunning.Status -eq 'Running') {
+                      Write-Output "=== Post-promotion boot detected ==="
+
+                      # Install AD CS to enable LDAPS on port 636
+                      $AdcsFeature = Get-WindowsFeature -Name ADCS-Cert-Authority
+                      Write-Output "ADCS feature state: Installed=$($AdcsFeature.Installed)"
+                      if (-not $AdcsFeature.Installed) {
+                        Write-Output "Installing ADCS-Cert-Authority..."
+                        $result = Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools
+                        Write-Output "ADCS install result: Success=$($result.Success), RestartNeeded=$($result.RestartNeeded)"
+
+                        Write-Output "Configuring AD CS Enterprise Root CA..."
+                        Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -Force 2>&1
+                        Restart-Service NTDS -Force
+                        Write-Output "AD CS configured and NTDS restarted"
                       }
+
+                      # Create test service accounts for integration testing
+                      Write-Output "Importing ActiveDirectory module..."
+                      Import-Module ActiveDirectory -ErrorAction Stop
+                      Write-Output "ActiveDirectory module imported"
+
+                      $testUsers = @{
+                        "svc-rotate-a" = "${random_password.test_user_password["svc-rotate-a"].result}"
+                        "svc-rotate-b" = "${random_password.test_user_password["svc-rotate-b"].result}"
+                        "svc-rotate-c" = "${random_password.test_user_password["svc-rotate-c"].result}"
+                        "svc-rotate-d" = "${random_password.test_user_password["svc-rotate-d"].result}"
+                        "svc-rotate-e" = "${random_password.test_user_password["svc-rotate-e"].result}"
+                        "svc-rotate-f" = "${random_password.test_user_password["svc-rotate-f"].result}"
+                        "svc-single"   = "${random_password.test_user_password["svc-single"].result}"
+                        "svc-lib"      = "${random_password.test_user_password["svc-lib"].result}"
+                      }
+                      foreach ($user in $testUsers.GetEnumerator()) {
+                        try {
+                          if (-not (Get-ADUser -Filter "sAMAccountName -eq '$($user.Key)'" -ErrorAction SilentlyContinue)) {
+                            $secPw = ConvertTo-SecureString $user.Value -AsPlainText -Force
+                            New-ADUser -Name $user.Key `
+                              -SamAccountName $user.Key `
+                              -UserPrincipalName "$($user.Key)@${var.active_directory_domain}" `
+                              -AccountPassword $secPw `
+                              -Enabled $true `
+                              -PasswordNeverExpires $true `
+                              -CannotChangePassword $false `
+                              -Path "CN=Users,DC=${join(",DC=", split(".", var.active_directory_domain))}"
+                            Write-Output "Created user: $($user.Key)"
+                          } else {
+                            Write-Output "User already exists: $($user.Key)"
+                          }
+                        } catch {
+                          Write-Output "ERROR creating user $($user.Key): $_"
+                        }
+                      }
+                      Write-Output "=== Post-promotion setup complete ==="
+
+                    } else {
+                      Write-Output "=== First boot: promoting to domain controller ==="
+
+                      # Check available features
+                      Write-Output "Checking AD DS feature availability..."
+                      $addsFeature = Get-WindowsFeature -Name AD-Domain-Services
+                      Write-Output "AD-Domain-Services: InstallState=$($addsFeature.InstallState), Available=$($addsFeature.Installed -eq $false -and $addsFeature.InstallState -ne 'Removed')"
+
+                      if ($addsFeature.InstallState -eq 'Removed') {
+                        Write-Output "ERROR: AD-Domain-Services feature sources removed from this AMI. Attempting install with -Source..."
+                      }
+
+                      Write-Output "Installing AD DS role..."
+                      $installResult = Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools -ErrorAction Stop
+                      Write-Output "AD DS install result: Success=$($installResult.Success), RestartNeeded=$($installResult.RestartNeeded), ExitCode=$($installResult.ExitCode)"
+
+                      if (-not $installResult.Success) {
+                        Write-Output "FATAL: AD DS installation failed!"
+                        Stop-Transcript
+                        exit 1
+                      }
+
+                      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
+
+                      Write-Output "Promoting to domain controller (domain: ${var.active_directory_domain})..."
+                      $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
+                      Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true 2>&1
+                      Write-Output "Install-ADDSForest completed (system will reboot automatically)"
                     }
-                  } else {
-                    # First boot: promote to domain controller
-                    $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
-                    Add-WindowsFeature -name ad-domain-services -IncludeManagementTools
-                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
-                    Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true
+                  } catch {
+                    Write-Output "FATAL ERROR: $_"
+                    Write-Output $_.ScriptStackTrace
+                  } finally {
+                    Stop-Transcript
                   }
                 </powershell>
                 <persist>true</persist>
