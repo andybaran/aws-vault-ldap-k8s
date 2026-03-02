@@ -235,6 +235,11 @@ resource "aws_instance" "domain_controller" {
 
                       Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
 
+                      # Exclude NTDS/SYSVOL paths from Defender to prevent file-locking during promotion
+                      # (hc-base AMI real-time scanning locks ntds.dit causing JET_errFileNotFound -1032)
+                      Write-Output "Adding Defender exclusions for NTDS paths..."
+                      Add-MpPreference -ExclusionPath "C:\Windows\NTDS","C:\Windows\SYSVOL" -ErrorAction SilentlyContinue
+
                       Write-Output "Promoting to domain controller (domain: ${var.active_directory_domain})..."
                       $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
                       Install-ADDSForest -CreateDnsDelegation:$false -DomainMode WinThreshold -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode WinThreshold -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true 2>&1
