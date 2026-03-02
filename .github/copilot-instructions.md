@@ -39,6 +39,31 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 
 This project uses a multi-agent orchestration pattern where specialized agents collaborate to manage different aspects of the infrastructure and application development lifecycle. All agents must report their status to a centralized dashboard for coordination and monitoring.
 
+### Model Selection (Orchestrator Guidance)
+
+When you are the **orchestrating agent** responsible for spawning or delegating
+work to other agents, choose the most cost-effective model for each sub-task.
+Not every task requires a premium model. Match model capability to task complexity:
+
+| Task complexity | Example tasks | Suggested model tier |
+|----------------|---------------|---------------------|
+| **High** — complex reasoning, architecture, multi-step planning | System design, large refactors, debugging subtle issues | Premium (e.g. Claude Opus, GPT-5.3-Codex) |
+| **Medium** — standard coding, analysis, writing | Feature implementation, code review, documentation | Standard (e.g. Claude Sonnet, GPT-5 mini) |
+| **Low** — routine, mechanical, or well-defined | Formatting, simple lookups, status checks, notifications | Fast/cheap (e.g. Claude Haiku, GPT-4.1 mini) |
+
+**Guidelines:**
+
+1. **Default to the lowest tier that can handle the task well.** Upgrade only
+   when the task genuinely requires stronger reasoning or broader context.
+2. **Report the model** each agent is using via the `model` query parameter so
+   the human operator can monitor cost across the workflow.
+3. **Re-evaluate during retries.** If a cheaper model fails at a task, it may
+   be worth retrying with a more capable model rather than repeating the same
+   failure.
+4. **Parallelism amplifies cost.** When running many agents concurrently, using
+   premium models for all of them can be very expensive. Reserve premium models
+   for the critical-path tasks.
+
 ### Agent Status Dashboard Integration
 
 The agent status dashboard provides real-time visibility into agent activities and coordinates work across the team. The dashboard runs at a configurable URL (default: `http://localhost:5050`, but may vary per session/environment).
