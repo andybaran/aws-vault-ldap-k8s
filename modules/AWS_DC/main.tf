@@ -172,6 +172,19 @@ resource "aws_instance" "domain_controller" {
                         Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -Force 2>&1
                         Restart-Service NTDS -Force
                         Write-Output "AD CS configured and NTDS restarted"
+
+                        # Wait for ADWS to be ready before using AD PowerShell module
+                        Write-Output "Waiting for Active Directory Web Services (ADWS) to start..."
+                        $timeout = 120; $elapsed = 0
+                        do {
+                          Start-Sleep 5; $elapsed += 5
+                          $adws = Get-Service ADWS -ErrorAction SilentlyContinue
+                          Write-Output "ADWS status: $($adws.Status) (${elapsed}s elapsed)"
+                        } while (($adws.Status -ne 'Running') -and ($elapsed -lt $timeout))
+                        if ($adws.Status -ne 'Running') {
+                          Start-Service ADWS -ErrorAction SilentlyContinue
+                          Start-Sleep 10
+                        }
                       }
 
                       # Create test service accounts for integration testing
