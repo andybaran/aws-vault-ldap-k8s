@@ -237,7 +237,7 @@ resource "aws_instance" "domain_controller" {
 
                       Write-Output "Promoting to domain controller (domain: ${var.active_directory_domain})..."
                       $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
-                      Install-ADDSForest -CreateDnsDelegation:$false -DomainMode Win2012R2 -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode Win2012R2 -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true 2>&1
+                      Install-ADDSForest -CreateDnsDelegation:$false -DomainMode WinThreshold -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode WinThreshold -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true 2>&1
                       Write-Output "Install-ADDSForest completed (system will reboot automatically)"
                     }
                   } catch {
