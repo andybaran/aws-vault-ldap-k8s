@@ -76,25 +76,26 @@ resource "random_password" "test_user_password" {
   min_special      = 1
 }
 
-// Deploy a Windows EC2 instance using the previously created, aws_security_group's, aws_key_pair and use a userdata script to create a windows domain controller
-data "aws_ami" "windows_2022" {
+// Security-approved Windows Server 2025 AMI from internal AMI pipeline
+// Updated weekly by the security team — always uses most_recent
+data "aws_ami" "hc_base_windows_server_2025" {
   most_recent = true
-  owners      = ["amazon"] # Amazon's owner ID for Windows AMIs
+  owners      = ["888995627335"] # hc-ami_prod
 
   filter {
     name   = "name"
-    values = ["Windows_Server-2022-English-Full-Base-*"]
+    values = ["hc-base-windows-server-2025-x64-*"]
   }
 
   filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
+    name   = "state"
+    values = ["available"]
   }
 }
 
 
 resource "aws_instance" "domain_controller" {
-  ami                    = data.aws_ami.windows_2022.id
+  ami                    = data.aws_ami.hc_base_windows_server_2025.id
   instance_type          = var.domain_controller_instance_type
   vpc_security_group_ids = [aws_security_group.rdp_ingress.id, var.shared_internal_sg_id]
   subnet_id              = var.subnet_id
