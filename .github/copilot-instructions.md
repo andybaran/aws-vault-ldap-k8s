@@ -35,6 +35,301 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 - When you are done working on an issue make a PR to the main branch and close the issue.
 - If subsequent issues depend on the issue you just closed, notify me and wait for me to approve a merge to the main branch.
 
+## Multi-Agent Workflow
+
+This project uses a multi-agent orchestration pattern where specialized agents collaborate to manage different aspects of the infrastructure and application development lifecycle. All agents must report their status to a centralized dashboard for coordination and monitoring.
+
+### Agent Status Dashboard Integration
+
+The agent status dashboard provides real-time visibility into agent activities and coordinates work across the team. The dashboard runs at a configurable URL (default: `http://localhost:5050`, but may vary per session/environment).
+
+**API Reference:**
+- **Endpoint:** `POST /api/update/<agent_name>/<status>`
+- **Valid Statuses:** `working`, `waiting`, `completed`, `idle`, `blocked`, `error`
+- **Optional Query Parameters:**
+  - `task` — Task name or description (URL-encoded)
+  - `task_url` — Link to GitHub issue or PR (URL-encoded)
+
+**Example Status Updates:**
+```bash
+# Report starting work on a task
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/working?task=Update%20vault%20module" > /dev/null
+
+# Report waiting for another agent
+curl -s -X POST "http://localhost:5050/api/update/Python%20Agent/waiting?task=Waiting%20for%20Research%20Agent" > /dev/null
+
+# Report task completion with GitHub issue link
+curl -s -X POST "http://localhost:5050/api/update/Testing%20Agent/completed?task=Validate%20rotation&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/issues/123" > /dev/null
+
+# Report error state
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Deploy%20Agent/error?task=Deployment%20failed" > /dev/null
+```
+
+**Naming Convention:**
+- Use Title Case with spaces for agent names (e.g., "Python Agent", "Terraform Agent")
+- URL-encode agent names in API calls (spaces become `%20`)
+- Keep agent names consistent across all status updates
+- Examples: `Python%20Agent`, `Kubernetes%20Agent`, `UI%20Agent`, `Documentation%20Agent`
+
+**Status Lifecycle:**
+1. Agent reports `working` when starting a task
+2. Agent reports `waiting` if blocked on another agent or human approval
+3. Agent reports `completed` when task finishes successfully
+4. Agent reports `error` if task fails
+5. Agent reports `idle` when available for new work
+6. **Stale Threshold:** Agents not reporting for 30+ minutes are considered stale
+
+### Agent Definitions
+
+| Agent Name | Responsibility |
+|---|---|
+| Python Agent | Refactor python-app/ Flask application, write pytest tests, use hvac library |
+| Kubernetes Agent | Create/modify K8s resources (deployments, services, ConfigMaps), manage Vault Agent sidecar/CSI/VSO manifests |
+| UI Agent | Update Python app UI (HDS-styled templates), timeline visualization, delivery method badges |
+| Documentation Agent | Update README.md, v2-instructions.md, copilot-instructions.md, module READMEs |
+| Testing Agent | Validate deployments, run pytest, integration testing, verify credential rotation |
+| Terraform Agent | Update HCL modules (kube0, kube1, vault, vault_ldap_secrets, ldap_app, AWS_DC), manage providers, stack components |
+| Research Agent | Research Terraform providers/modules, Vault APIs, AWS services, EKS features, inform other agents |
+| Terraform Deploy Agent | Deploy via HCP Terraform (org: andybaran, stack: aws-vault-ldap-k8s), monitor runs, troubleshoot failures |
+| GitOps Agent | Coordinate branches, PRs, code reviews, merge orchestration, resolve conflicts |
+| Time Tracking Agent | Monitor agent status dashboard, report anomalies, ensure all agents report correctly |
+
+#### Python Agent
+
+The Python Agent owns the Flask application codebase located in `python-app/`. It is responsible for implementing credential delivery methods (VSO, Vault Agent sidecar, CSI Driver), integrating the hvac library for direct Vault API communication, and writing pytest tests to validate application behavior.
+
+**Primary Files:**
+- `python-app/app.py` — Main Flask application (APP_VERSION 3.0.0)
+- `python-app/requirements.txt` — Python dependencies (Flask, hvac, requests)
+- `python-app/Dockerfile` — Multi-stage Docker build
+- `python-app/tests/` — pytest test suite
+
+**Coordinates With:**
+- **UI Agent** — Provides backend endpoints and data structures for frontend rendering
+- **Kubernetes Agent** — Validates K8s deployment manifests match application requirements
+- **Testing Agent** — Ensures pytest tests cover all credential delivery methods
+- **Research Agent** — Consults on hvac library best practices and Vault API usage
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Python%20Agent/working?task=Implement%20CSI%20Driver%20support&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/issues/185" > /dev/null
+```
+
+#### Kubernetes Agent
+
+The Kubernetes Agent manages all Kubernetes manifests and resources across the project. It creates and modifies K8s deployments, services, ConfigMaps, ServiceAccounts, and custom resources (VaultDynamicSecret, SecretProviderClass). It is the expert on Vault Agent sidecar injection, VSO integration, and CSI Driver configuration.
+
+**Primary Files:**
+- `modules/kube1/2_kube_tools.tf` — Vault ServiceAccount, nginx ingress, Vault license secret
+- `modules/vault/vso.tf` — VaultConnection, VaultAuth CRs
+- `modules/vault/vault.tf` — Vault Helm chart configuration
+- `modules/ldap_app/ldap_app.tf` — VSO VaultDynamicSecret, app deployment
+- `modules/ldap_app/vault_agent_app.tf` — Vault Agent sidecar manifests
+- `modules/ldap_app/csi_app.tf` — CSI Driver SecretProviderClass
+- `modules/windows_config/main.tf` — K8s jobs for Windows IPAM and AD user creation
+
+**Coordinates With:**
+- **Python Agent** — Ensures K8s manifests expose correct env vars and volume mounts
+- **Terraform Agent** — Validates HCL kubernetes_* resources align with K8s best practices
+- **Testing Agent** — Provides deployment status for integration tests
+- **Vault LDAP Secrets Agent** (conceptual) — Validates VaultAuth roles and policies
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Kubernetes%20Agent/completed?task=Add%20CSI%20SecretProviderClass&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/pull/189" > /dev/null
+```
+
+#### UI Agent
+
+The UI Agent owns the frontend presentation layer of the Python Flask application. It implements HDS (Helios Design System)-styled templates, creates timeline visualizations showing dual-account credential rotation phases, and designs delivery method badges to distinguish between VSO, Vault Agent, and CSI Driver modes.
+
+**Primary Files:**
+- `python-app/templates/` — Jinja2 HTML templates
+- `python-app/static/` — CSS, JavaScript assets
+- `python-app/app.py` — Template rendering logic (`/`, `/api/credentials` endpoints)
+
+**Coordinates With:**
+- **Python Agent** — Consumes JSON API data from `/api/credentials` endpoint
+- **Documentation Agent** — Ensures UI screenshots in README.md are current
+- **Testing Agent** — Validates UI renders correctly for all delivery methods
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/UI%20Agent/working?task=Refactor%20timeline%20SVG%20animation" > /dev/null
+```
+
+#### Documentation Agent
+
+The Documentation Agent maintains all project documentation, ensuring it stays synchronized with code changes. It updates README files, architecture diagrams, module descriptions, and the authoritative Codebase Snapshot in `.github/copilot-instructions.md`.
+
+**Primary Files:**
+- `README.md` — Project overview, deployment instructions
+- `v2-instructions.md` — V2 multi-delivery refactoring guide
+- `.github/copilot-instructions.md` — This file, agent instructions and codebase snapshot
+- `modules/*/README.md` — Module-specific documentation
+- `python-app/README.md` — Application documentation
+
+**Coordinates With:**
+- **All Agents** — Documents changes from every agent's work
+- **GitOps Agent** — Ensures PRs include documentation updates
+- **Testing Agent** — Documents test coverage and validation procedures
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Documentation%20Agent/completed?task=Update%20Codebase%20Snapshot%20for%20PR%20189" > /dev/null
+```
+
+#### Testing Agent
+
+The Testing Agent validates that deployments work correctly, runs pytest test suites, performs integration testing across AWS/EKS/Vault components, and verifies credential rotation behavior. It ensures all three delivery methods (VSO, Vault Agent, CSI) function as expected.
+
+**Primary Files:**
+- `python-app/tests/` — pytest test suite (22 tests covering all delivery methods)
+- `modules/vault/vault_init.tf` — Vault initialization job (integration test target)
+- `modules/ldap_app/` — All three app deployment manifests (test targets)
+
+**Coordinates With:**
+- **Python Agent** — Runs pytest tests after code changes
+- **Kubernetes Agent** — Validates K8s resource deployments succeeded
+- **Terraform Deploy Agent** — Tests infrastructure after Terraform apply
+- **Research Agent** — Consults on testing best practices for Vault/K8s integration
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Testing%20Agent/working?task=Validate%20dual-account%20rotation&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/issues/172" > /dev/null
+```
+
+#### Terraform Agent
+
+The Terraform Agent is the HCL expert, managing all Terraform modules, stack components, provider configurations, and variable declarations. It ensures modules follow best practices, updates provider versions, and maintains the dependency graph across the 6 stack components (kube0, kube1, vault_cluster, vault_ldap_secrets, ldap_app, ldap, windows_config).
+
+**Primary Files:**
+- `components.tfcomponent.hcl` — Stack component definitions and wiring
+- `deployments.tfdeploy.hcl` — Deployment configuration (development in us-east-2)
+- `providers.tfcomponent.hcl` — Provider version pinning
+- `variables.tfcomponent.hcl` — Stack variable declarations
+- `modules/kube0/` — VPC, EKS cluster, security groups
+- `modules/kube1/` — Kubernetes base tools (nginx, Vault SA)
+- `modules/vault/` — Vault Helm chart, init job, VSO
+- `modules/vault_ldap_secrets/` — LDAP secrets engine, K8s auth backend
+- `modules/ldap_app/` — Python app deployments (VSO, Agent, CSI)
+- `modules/AWS_DC/` — Active Directory domain controller
+- `modules/windows_config/` — Windows IPAM, AD user creation
+
+**Coordinates With:**
+- **Research Agent** — Consults on latest Terraform provider/module versions
+- **Kubernetes Agent** — Ensures kubernetes_* resources are idiomatic
+- **Terraform Deploy Agent** — Validates HCL changes before deployment
+- **Documentation Agent** — Updates module READMEs after changes
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/working?task=Add%20grace_period%20variable&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/issues/165" > /dev/null
+```
+
+#### Research Agent
+
+The Research Agent is the knowledge expert, conducting research on Terraform providers/modules, Vault APIs, AWS services, EKS features, and best practices. It does NOT implement changes directly—instead, it informs other agents with findings, recommendations, and authoritative documentation links. It runs FIRST in the workflow to provide guidance before other agents begin work.
+
+**Primary Tools:**
+- Terraform MCP server (`search_providers`, `search_modules`, `get_latest_provider_version`)
+- Vault skill/documentation
+- AWS skill/documentation
+- Web search for HashiCorp/AWS official docs
+
+**Coordinates With:**
+- **All Agents** — Provides research findings to inform their work
+- **Terraform Agent** — Recommends provider/module versions and best practices
+- **Python Agent** — Researches hvac library APIs and Vault endpoint schemas
+- **Kubernetes Agent** — Researches VSO/CSI/Vault Agent integration patterns
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Research%20Agent/completed?task=Research%20Vault%20dual-account%20plugin%20APIs" > /dev/null
+```
+
+#### Terraform Deploy Agent
+
+The Terraform Deploy Agent manages deployments via HCP Terraform (organization: `andybaran`, stack: `aws-vault-ldap-k8s`). It monitors Terraform runs, troubleshoots apply failures, and coordinates deployment timing with other agents. It does NOT write Terraform code—it deploys changes made by the Terraform Agent.
+
+**Primary Tools:**
+- Terraform MCP server (`create_run`, `get_run_details`, `list_runs`, `get_workspace_details`)
+- HCP Terraform API for stack operations
+- GitHub CLI for coordinating with GitOps Agent
+
+**Coordinates With:**
+- **Terraform Agent** — Deploys HCL changes after code review
+- **GitOps Agent** — Waits for PR approval before deploying to main branch
+- **Testing Agent** — Triggers validation tests after successful deployment
+- **Time Tracking Agent** — Reports long-running deployments
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Deploy%20Agent/waiting?task=Waiting%20for%20PR%20approval%20before%20deploy" > /dev/null
+```
+
+#### GitOps Agent
+
+The GitOps Agent coordinates Git workflows, including branch creation, pull requests, code reviews, merge orchestration, and conflict resolution. It ensures all PRs target the `main` branch, enforces human approval requirements, and manages parallel work across multiple feature branches.
+
+**Primary Tools:**
+- `git` CLI for branch/commit operations
+- `gh` CLI for GitHub PR/issue management
+- GitHub MCP server for advanced PR operations
+
+**Coordinates With:**
+- **All Agents** — Creates branches and PRs for their work
+- **Documentation Agent** — Ensures PRs include documentation updates
+- **Testing Agent** — Requires test validation before merge
+- **Terraform Deploy Agent** — Coordinates deployment timing with merges
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/GitOps%20Agent/working?task=Create%20PR%20for%20CSI%20integration&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/pull/189" > /dev/null
+```
+
+#### Time Tracking Agent
+
+The Time Tracking Agent monitors the agent status dashboard, detects stale agents (no updates for 30+ minutes), reports anomalies, and ensures all agents comply with status reporting requirements. It acts as a meta-monitor, keeping the multi-agent system healthy and coordinated.
+
+**Primary Responsibilities:**
+- Poll dashboard API to detect stale agents
+- Alert when agents report `error` or `blocked` status
+- Validate agents report status during their lifecycle
+- Generate summary reports of agent activity
+
+**Coordinates With:**
+- **All Agents** — Monitors their status updates
+- **GitOps Agent** — Reports on PR/merge bottlenecks
+- **Terraform Deploy Agent** — Alerts on long-running deployments
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/working?task=Monitor%20agent%20health" > /dev/null
+```
+
+### Orchestration Rules
+
+1. **Research Agent runs first:** Before starting work on a new feature or issue, the Research Agent should investigate best practices, provider versions, and API schemas to inform other agents.
+
+2. **Maximize parallel work:** Agents should work on independent tasks simultaneously whenever possible. Use GitHub issues to track parallel work streams. Example: Python Agent refactors app logic while Terraform Agent updates module HCL.
+
+3. **Human approval for main branch:** All pull requests targeting `main` must be reviewed and approved by a human before merging. Agents should report `waiting` status when blocked on PR approval.
+
+4. **Report `waiting` when blocked:** If an agent is blocked on another agent's work, it must report `waiting` status with a clear description. Example: "Waiting for Terraform Agent to update vault module" or "Waiting for PR #189 approval".
+
+5. **Use task metadata:** When working on GitHub issues, always include `task` (issue title) and `task_url` (issue link) in status updates for traceability.
+
+6. **Stale agent recovery:** If an agent becomes stale (30+ min without update), the Time Tracking Agent should alert and another agent may resume the work.
+
+7. **Error escalation:** Agents reporting `error` status should include diagnostic information in the `task` parameter and coordinate with other agents for resolution.
+
+8. **Deployment coordination:** Terraform Deploy Agent should only deploy after Terraform Agent has completed HCL changes, GitOps Agent has created a PR, and Testing Agent has validated changes in a branch deployment.
+
+9. **Documentation is mandatory:** Documentation Agent must update `.github/copilot-instructions.md` Codebase Snapshot section for every PR that changes architecture, modules, or dependencies.
+
+10. **Branch strategy:** Create feature branches from `main`, name them descriptively (e.g., `feature/csi-driver-integration`, `fix/vault-init-idempotency`), and always target `main` for PRs. Never commit directly to `main`.
+
 ## Maintaining This Document
 
 **IMPORTANT:** When creating PRs, update the "Codebase Snapshot" section below to reflect any changes you made. This keeps future sessions from needing to re-read the entire codebase. Specifically update:
