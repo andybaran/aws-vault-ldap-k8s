@@ -60,6 +60,4 @@ deployment "development" {
 
 # Retry 2: DC confirmed online, LDAPS working
 
-# Retry 3: K8s Unexpected Identity Change transient error
-# Retry 4: deleted conflicting K8s resources
-# Retry: K8s identity change - vault agent deployment
+# Trigger: fix DomainMode Win2012R2 → WinThreshold for Windows Server 2025 compatibility
