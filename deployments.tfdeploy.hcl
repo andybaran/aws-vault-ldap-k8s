@@ -62,3 +62,5 @@ deployment "development" {
 
 # Trigger: fix DomainMode Win2012R2 → WinThreshold for Windows Server 2025 compatibility
 # Trigger: fix JET_errFileNotFound -1032 — add Defender exclusions before Install-ADDSForest
+
+# Trigger: add ADWS wait loop after NTDS restart to fix service account creation timing
