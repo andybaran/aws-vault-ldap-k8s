@@ -61,3 +61,4 @@ deployment "development" {
 # Retry 2: DC confirmed online, LDAPS working
 
 # Trigger: fix DomainMode Win2012R2 → WinThreshold for Windows Server 2025 compatibility
+# Trigger: fix JET_errFileNotFound -1032 — add Defender exclusions before Install-ADDSForest
