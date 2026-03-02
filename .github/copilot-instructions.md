@@ -126,7 +126,6 @@ The Kubernetes Agent manages all Kubernetes manifests and resources across the p
 - `modules/ldap_app/ldap_app.tf` — VSO VaultDynamicSecret, app deployment
 - `modules/ldap_app/vault_agent_app.tf` — Vault Agent sidecar manifests
 - `modules/ldap_app/csi_app.tf` — CSI Driver SecretProviderClass
-- `modules/windows_config/main.tf` — K8s jobs for Windows IPAM and AD user creation
 
 **Coordinates With:**
 - **Python Agent** — Ensures K8s manifests expose correct env vars and volume mounts
@@ -201,7 +200,7 @@ curl -s -X POST "http://localhost:5050/api/update/Testing%20Agent/working?task=V
 
 #### Terraform Agent
 
-The Terraform Agent is the HCL expert, managing all Terraform modules, stack components, provider configurations, and variable declarations. It ensures modules follow best practices, updates provider versions, and maintains the dependency graph across the 6 stack components (kube0, kube1, vault_cluster, vault_ldap_secrets, ldap_app, ldap, windows_config).
+The Terraform Agent is the HCL expert, managing all Terraform modules, stack components, provider configurations, and variable declarations. It ensures modules follow best practices, updates provider versions, and maintains the dependency graph across the 5 stack components (kube0, kube1, vault_cluster, vault_ldap_secrets, ldap_app, ldap).
 
 **Primary Files:**
 - `components.tfcomponent.hcl` — Stack component definitions and wiring
@@ -214,7 +213,6 @@ The Terraform Agent is the HCL expert, managing all Terraform modules, stack com
 - `modules/vault_ldap_secrets/` — LDAP secrets engine, K8s auth backend
 - `modules/ldap_app/` — Python app deployments (VSO, Agent, CSI)
 - `modules/AWS_DC/` — Active Directory domain controller
-- `modules/windows_config/` — Windows IPAM, AD user creation
 
 **Coordinates With:**
 - **Research Agent** — Consults on latest Terraform provider/module versions
@@ -341,7 +339,7 @@ curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/workin
 
 ---
 
-## Codebase Snapshot (last updated: 2026-03-01, post Phase 5 dual-account expansion)
+## Codebase Snapshot (last updated: 2026-03-02, post Windows cleanup + DC AMI upgrade)
 
 ### Repository
 
@@ -382,10 +380,7 @@ kube0 (VPC, EKS, security groups)
   │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, 3 dual-account static roles: dual-rotation-demo (a/b), vault-agent-dual-role (c/d), csi-dual-role (e/f), K8s auth backend with 4 roles)
   │             │      └──► ldap_app (3 deployments: VSO dual-account, Vault Agent sidecar, CSI Driver)
   │             └──► [vault provider configured from var.vault_address + var.vault_token]
-  ├──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS)
-  │      └──► windows_config (Windows IPAM, create vault-demo AD user via K8s job)
-  │             └──► vault_ldap_secrets (depends on ad_user_job_completed)
-  └──► windows_config (uses kube0 + kube1 + ldap outputs)
+  └──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS)
 ```
 
 ### Module Details
@@ -396,7 +391,7 @@ kube0 (VPC, EKS, security groups)
 **Files:**
 - `1_locals.tf` — Naming locals (`customer_id`, `demo_id`, `resources_prefix`), AZ selection (filters AZs supporting the requested instance type, picks up to 3), `random_string.identifier`
 - `1_aws_network.tf` — VPC module (`terraform-aws-modules/vpc/aws` v6.5.1), CIDR `10.0.0.0/16`, single NAT gateway, public/private subnets with ELB tags
-- `1_aws_eks.tf` — EKS module (`terraform-aws-modules/eks/aws` v21.11.0), K8s 1.34, public endpoint, `enable_cluster_creator_admin_permissions=true`, addons (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni, aws-ebs-csi-driver), two managed node groups: `linux_nodes` (1-3, desired 3) and `windows_nodes` (ami_type `WINDOWS_CORE_2022_x86_64`, t3.large, 1-2, desired 1, tainted `os=windows:NoSchedule`). EBS CSI driver IAM role with IRSA.
+- `1_aws_eks.tf` — EKS module (`terraform-aws-modules/eks/aws` v21.11.0), K8s 1.34, public endpoint, `enable_cluster_creator_admin_permissions=true`, addons (coredns, eks-pod-identity-agent, kube-proxy, vpc-cni, aws-ebs-csi-driver), managed node group: `linux_nodes` (1-3, desired 3). EBS CSI driver IAM role with IRSA.
 - `2_security_groups.tf` — `shared_internal` SG: allows all inbound from VPC CIDR, all outbound
 - `variables.tf` — `region` (default "us-east-2"), `user_email`, `instance_type` (default `t3.medium`), `customer_name`, `eks_node_ami_release_version`
 - `outputs.tf` — `vpc_id`, `demo_id`, `cluster_endpoint`, `kube_cluster_certificate_authority_data`, `eks_cluster_name` (outputs a `kubectl update-kubeconfig` command using `var.region`), `eks_cluster_id`, `eks_cluster_auth` (sensitive token), `first_private_subnet_id`, `first_public_subnet_id`, `shared_internal_sg_id`, `resources_prefix`
@@ -426,21 +421,10 @@ kube0 (VPC, EKS, security groups)
 **Providers:** aws, tls, random
 
 **Files:**
-- `main.tf` — Windows Server 2022 EC2 (`data.aws_ami.windows_2022`), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 8 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a through svc-rotate-f, svc-single, svc-lib). Elastic IP attached. **`time_sleep.wait_for_dc_reboot` (10m) ensures reboot cycle completes before outputs become available.**
+- `main.tf` — Windows Server 2025 EC2 (`data.aws_ami.hc_base_windows_server_2025`, owner `888995627335` security-approved AMI), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 8 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a through svc-rotate-f, svc-single, svc-lib). Elastic IP attached. **`time_sleep.wait_for_dc_reboot` (10m) ensures reboot cycle completes before outputs become available.**
 - `variables.tf` — `allowlist_ip`, `prefix` (default "boundary-rdp"), `aws_key_pair_name`, `ami` (unused default), `domain_controller_instance_type`, `root_block_device_size` (128GB), `active_directory_domain` (mydomain.local), `active_directory_netbios_name` (mydomain), `only_ntlmv2`, `only_kerberos`, `vpc_id`, `subnet_id`, `shared_internal_sg_id`
 - `outputs.tf` — `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password` (decrypted admin pw, nonsensitive), `aws_keypair_name`, `static_roles` (map of test account username/password/dn from `random_password`). **All outputs depend on `time_sleep.wait_for_dc_reboot`.**
 - `README.md` — Documents the DC setup and PowerShell user_data
-
-#### `modules/windows_config/` — Windows IPAM + AD User Creation
-**Providers:** kubernetes
-
-**Files:**
-- `main.tf` — Two K8s jobs:
-  1. `windows_k8s_config` (Linux container): Enables Windows IPAM via ConfigMap `amazon-vpc-cni`, sets env on aws-node DaemonSet, waits for VPC CNI rollout, waits for Windows nodes to join and be Ready (up to 10 min), waits 60s for IP allocation
-  2. `create_ad_user` (Windows container `ghcr.io/andybaran/aws-vault-ldap-k8s/ad-tools:ltsc2022`): Creates `vault-demo` AD user with PowerShell script from ConfigMap. Uses initial password = admin password. Node selector `kubernetes.io/os=windows`, tolerates `os=windows:NoSchedule` taint. Annotation `demo/dc-private-ip` forces re-creation when DC rebuilds.
-- `scripts/Create-ADUser.ps1` — PowerShell: waits for AD on port 389, imports AD module, authenticates as admin, deletes existing vault-demo user if present, creates fresh vault-demo user, verifies and tests auth
-- `variables.tf` — `demo_id`, `cluster_endpoint`, `kube_cluster_certificate_authority_data`, `kube_namespace`, `ldap_dc_private_ip`, `ldap_admin_password`
-- `outputs.tf` — `windows_ipam_enabled`, `ad_user_job_status` (used as dependency signal), `vault_demo_initial_password`
 
 #### `modules/vault_ldap_secrets/` — Vault LDAP Secrets Engine
 **Providers:** vault
@@ -492,17 +476,11 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 - `requirements.txt`: Flask==3.1.0, Werkzeug==3.1.3, requests==2.32.3
 - Image: `ghcr.io/andybaran/vault-ldap-demo:latest`
 
-### Docker Images (`docker/`)
-
-- `docker/ad-tools/Dockerfile` — Windows Server Core ltsc2022 with RSAT-AD-PowerShell pre-installed
-- Image: `ghcr.io/andybaran/aws-vault-ldap-k8s/ad-tools:ltsc2022`
-
 ### CI/CD (`.github/workflows/`)
 
 | Workflow | Trigger | Image |
 |----------|---------|-------|
 | `build-python-app-image.yml` | push to `main` on `python-app/**` | `ghcr.io/andybaran/vault-ldap-demo` |
-| `build-ad-tools-image.yml` | push to `main` on `docker/ad-tools/**` | `ghcr.io/andybaran/aws-vault-ldap-k8s/ad-tools` |
 
 ### Stack Outputs (from `components.tfcomponent.hcl`)
 
