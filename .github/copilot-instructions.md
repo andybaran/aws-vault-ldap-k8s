@@ -26,6 +26,266 @@ The code currently utilizes **Terraform Stacks** and all work must continue to d
 - I have set the correct environment variables to log into AWS.
 - If you need credentials, prompt me for them and wait for my answer.
 
+### Agent Status Dashboard Integration
+
+The agent status dashboard runs at a configurable URL (default: http://localhost:5050). Every agent participating in this project must report its status to the dashboard using the following API:
+
+**API Endpoint:**
+```
+POST http://localhost:5050/api/update/<agent_name>/<status>
+```
+
+**Valid Statuses:**
+- `working` - Agent is actively executing a task
+- `waiting` - Agent is blocked or waiting for dependencies
+- `completed` - Agent has successfully completed its task
+- `idle` - Agent is available but not assigned work
+- `blocked` - Agent cannot proceed due to external factors
+- `error` - Agent encountered an error
+
+**Optional Query Parameters:**
+- `task` - Name or brief description of the current task
+- `task_url` - Link to related issue, PR, or documentation
+- `model` - AI model being used (e.g. Claude Sonnet 4.5, GPT-4.1)
+
+**Example curl commands:**
+```bash
+# Report working status with task details and model
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/working?task=Updating%20EKS%20module%20version&task_url=https://github.com/andybaran/aws-vault-ldap-k8s/issues/42&model=Claude+Opus+4.5" > /dev/null
+
+# Report completed status
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/completed" > /dev/null
+
+# Report error status with details
+curl -s -X POST "http://localhost:5050/api/update/Vault%20Agent/error?task=Vault%20init%20job%20failed&model=Claude+Haiku+4.5" > /dev/null
+```
+
+**Naming Convention:**
+- Use Title Case for agent names (e.g., "Terraform Agent", "Vault Agent")
+- Be consistent with agent names across all status updates
+- URL-encode agent names in the API path (spaces become `%20`)
+
+**Required Lifecycle:**
+1. Agent reports `working` status when starting a task
+2. Agent performs work, optionally updating status with progress
+3. Agent reports `completed` status on success, or `error` on failure
+4. If blocked waiting for another agent, report `waiting` status
+
+**Stale Threshold:**
+- If an agent does not report status for 10 minutes, it will be marked as stale
+- The Time Tracking Agent monitors for stale agents and investigates
+
+### Agent Definitions
+
+This project employs 10 specialized agents, each with specific responsibilities. All agents coordinate through the status dashboard and follow the orchestration rules defined below.
+
+| Agent Name | Responsibility |
+|---|---|
+| Terraform Agent | Write/modify Terraform Stacks HCL (components, deployments, providers, variables) and all modules; ensure provider version pins and module upgrades follow best practices |
+| AWS Agent | Manage AWS-specific resources (VPC, EKS, security groups, EC2 domain controller, EIPs, IAM roles) and troubleshoot AWS service issues |
+| Vault Agent | Configure Vault Enterprise HA Raft cluster, VSO, Vault Agent sidecars, CSI Driver, LDAP secrets engine, K8s auth, and dual-account rotation plugin |
+| Kubernetes Agent | Manage Kubernetes resources (deployments, services, ServiceAccounts, RBAC, Helm releases, storage classes) and EKS cluster configuration |
+| Python App Agent | Develop and maintain the Flask credential display app (app.py, Dockerfile, requirements.txt), including VSO, Vault Agent, and CSI delivery modes |
+| Documentation Agent | Update copilot-instructions.md, README files, PR descriptions, code comments, and module READMEs whenever changes are made |
+| Testing Agent | Validate Terraform plans, test deployed infrastructure end-to-end, verify credential rotation, and troubleshoot deployment failures |
+| Windows Agent | Manage the Active Directory domain controller (EC2 user_data, PowerShell scripts, AD CS, LDAPS), Windows IPAM, and AD user creation K8s jobs |
+| GitOps Agent | Coordinate branches, PRs, GitHub issues, merge orchestration, and ensure main branch stays deployable |
+| Time Tracking Agent | Monitor agent status dashboard, report anomalies, ensure all agents report correctly, and investigate stale agents |
+
+#### Terraform Agent
+
+The Terraform Agent is responsible for all Terraform Stacks HCL and module development. This includes `components.tfcomponent.hcl`, `deployments.tfdeploy.hcl`, `providers.tfcomponent.hcl`, `variables.tfcomponent.hcl`, and all files under `modules/`. The agent ensures provider versions are pinned, module inputs/outputs are correctly wired, and the component dependency graph is maintained.
+
+**Key Responsibilities:**
+- Modify stack-level HCL files (component definitions, deployment configs, provider pins, variable declarations)
+- Update Terraform module code in `modules/kube0/`, `modules/kube1/`, `modules/vault/`, `modules/vault_ldap_secrets/`, `modules/ldap_app/`, `modules/AWS_DC/`, and `modules/windows_config/`
+- Bump provider and module versions (e.g., terraform-aws-modules/eks/aws, terraform-aws-modules/vpc/aws)
+- Ensure component dependency wiring is correct in `components.tfcomponent.hcl`
+- Coordinate with the AWS Agent for AWS resources and the Vault Agent for Vault configuration
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/working?task=Bumping%20EKS%20module%20to%20v21.12.0" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/completed" > /dev/null
+```
+
+#### AWS Agent
+
+The AWS Agent manages all AWS-specific infrastructure including VPC networking, EKS cluster configuration, security groups, EC2 instances (Windows domain controller), Elastic IPs, IAM roles (IRSA for EBS CSI), and EKS addons. The agent troubleshoots AWS service issues and ensures resources are cost-effective for this demo project.
+
+**Key Responsibilities:**
+- Configure VPC (CIDR, subnets, NAT gateway) in `modules/kube0/1_aws_network.tf`
+- Manage EKS cluster (version, node groups, addons) in `modules/kube0/1_aws_eks.tf`
+- Maintain security groups in `modules/kube0/2_security_groups.tf`
+- Manage the Windows EC2 domain controller AMI, instance type, and EIP in `modules/AWS_DC/`
+- Coordinate with the Terraform Agent for HCL changes and the Windows Agent for DC configuration
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/AWS%20Agent/working?task=Updating%20EKS%20addons%20for%20K8s%201.34" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/AWS%20Agent/completed" > /dev/null
+```
+
+#### Vault Agent
+
+The Vault Agent configures all Vault Enterprise components: the HA Raft cluster via Helm, the init/unseal job, Vault Secrets Operator (VSO), VaultConnection/VaultAuth CRDs, the CSI Driver, the LDAP secrets engine (single and dual-account modes), Kubernetes auth backend, and the custom dual-account rotation plugin registration.
+
+**Key Responsibilities:**
+- Manage Vault Helm release configuration in `modules/vault/vault.tf`
+- Maintain the init/unseal K8s job in `modules/vault/vault_init.tf`
+- Configure VSO, VaultConnection, and VaultAuth in `modules/vault/vso.tf`
+- Set up LDAP secrets engine (single-account in `modules/vault_ldap_secrets/main.tf`, dual-account in `modules/vault_ldap_secrets/dual_account.tf`)
+- Manage K8s auth backend and roles in `modules/vault_ldap_secrets/kubernetes_auth.tf`
+- Coordinate with the Kubernetes Agent for K8s resources and the Python App Agent for secret delivery
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Vault%20Agent/working?task=Configuring%20dual-account%20static%20roles" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Vault%20Agent/completed" > /dev/null
+```
+
+#### Kubernetes Agent
+
+The Kubernetes Agent manages all Kubernetes-level resources including deployments, services, ServiceAccounts, RBAC (Roles, RoleBindings, ClusterRoleBindings), Helm chart releases, StorageClasses, ConfigMaps, and Secrets. This agent also handles EKS-specific configuration like Windows node management and VPC CNI settings.
+
+**Key Responsibilities:**
+- Manage nginx ingress Helm release and EIPs in `modules/kube1/`
+- Configure Vault storage class in `modules/vault/storage.tf`
+- Maintain app deployments (VSO, Vault Agent sidecar, CSI) in `modules/ldap_app/`
+- Manage ServiceAccounts and RBAC for Vault auth, VSO, and app workloads
+- Handle Windows node scheduling (taints, tolerations, node selectors) in `modules/windows_config/`
+- Coordinate with the Vault Agent for auth configuration and the AWS Agent for EKS changes
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Kubernetes%20Agent/working?task=Updating%20nginx%20ingress%20Helm%20values" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Kubernetes%20Agent/completed" > /dev/null
+```
+
+#### Python App Agent
+
+The Python App Agent develops and maintains the Flask credential display application in `python-app/`. This includes `app.py` (3 delivery modes: VSO, Vault Agent sidecar, CSI Driver), the `Dockerfile`, `requirements.txt`, and the HDS-styled UI with timeline visualization. The agent ensures the app correctly handles dual-account rotation and all secret delivery methods.
+
+**Key Responsibilities:**
+- Maintain `python-app/app.py` including VaultClient, FileCredentialCache, and credential API
+- Update `python-app/Dockerfile` and `python-app/requirements.txt`
+- Ensure the timeline UI correctly visualizes Account A/B rotation phases
+- Test all three delivery modes locally before deployment
+- Coordinate with the Vault Agent for secret paths and the Kubernetes Agent for deployment specs
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Python%20App%20Agent/working?task=Adding%20CSI%20Driver%20delivery%20mode" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Python%20App%20Agent/completed" > /dev/null
+```
+
+#### Documentation Agent
+
+The Documentation Agent maintains all documentation: this `copilot-instructions.md` (including the Codebase Snapshot), module READMEs, PR descriptions, and code comments. The agent ensures documentation stays current with code changes, particularly the Codebase Snapshot section which serves as the primary context for future sessions.
+
+**Key Responsibilities:**
+- Update the Codebase Snapshot section in copilot-instructions.md after every PR
+- Write clear PR descriptions with change summaries and testing notes
+- Maintain module-level READMEs (e.g., `modules/AWS_DC/README.md`)
+- Add inline comments for complex logic (dual-account gating, Vault init, PowerShell user_data)
+- Coordinate with all agents to capture changes and update documentation promptly
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Documentation%20Agent/working?task=Updating%20Codebase%20Snapshot%20for%20PR%20195" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Documentation%20Agent/completed" > /dev/null
+```
+
+#### Testing Agent
+
+The Testing Agent validates Terraform plans, tests deployed infrastructure end-to-end, verifies credential rotation works correctly, and troubleshoots deployment failures. The agent runs `terraform plan` to catch configuration errors and performs smoke tests against the live stack (Vault API, LDAP rotation, app endpoints).
+
+**Key Responsibilities:**
+- Run Terraform plan/apply validation for all stack components
+- Verify Vault initialization, unsealing, and LDAP secrets engine configuration
+- Test credential rotation (single-account and dual-account modes)
+- Smoke test the Python app endpoints (`/health`, `/api/credentials`) for all delivery methods
+- Investigate and resolve "Unexpected Identity Change" Terraform Stacks errors
+- Coordinate with the Terraform Agent for plan validation and the Vault Agent for secrets engine testing
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Testing%20Agent/working?task=Verifying%20dual-account%20rotation%20end-to-end" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Testing%20Agent/completed" > /dev/null
+```
+
+#### Windows Agent
+
+The Windows Agent manages everything related to the Active Directory domain controller: the Windows Server 2022 EC2 instance, PowerShell user_data scripts (AD DS forest promotion, AD CS for LDAPS, test service account creation), the Windows IPAM K8s job, and the AD user creation K8s job running on Windows nodes.
+
+**Key Responsibilities:**
+- Maintain Windows EC2 user_data PowerShell in `modules/AWS_DC/main.tf`
+- Manage AD service accounts (svc-rotate-a through svc-rotate-f, svc-single, svc-lib)
+- Configure AD Certificate Services for LDAPS connectivity
+- Maintain the `Create-ADUser.ps1` script in `modules/windows_config/scripts/`
+- Manage the Windows IPAM enablement and Windows node scheduling K8s jobs
+- Coordinate with the AWS Agent for EC2 configuration and the Vault Agent for LDAP bind credentials
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Windows%20Agent/working?task=Updating%20AD%20service%20account%20creation%20script" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Windows%20Agent/completed" > /dev/null
+```
+
+#### GitOps Agent
+
+The GitOps Agent coordinates all Git and GitHub operations including branch management, pull request creation, issue tracking, merge orchestration, and ensuring the main branch stays deployable. The agent follows gitflow and ensures all PRs are reviewed before merging.
+
+**Key Responsibilities:**
+- Create feature branches for new work
+- Create PRs to main with clear descriptions
+- Track GitHub issues and link them to PRs
+- Coordinate merge timing between dependent changes
+- Ensure main branch is always in a deployable state
+- Coordinate with all agents to ensure changes are properly committed
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/GitOps%20Agent/working?task=Creating%20PR%20for%20EKS%20upgrade" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/GitOps%20Agent/completed" > /dev/null
+```
+
+#### Time Tracking Agent
+
+The Time Tracking Agent monitors the agent status dashboard for anomalies, stale agents, and inconsistent status reporting. It ensures all agents are reporting correctly and investigates when agents fail to update their status within the 10-minute stale threshold.
+
+**Key Responsibilities:**
+- Poll the dashboard API every 5-10 minutes to check agent statuses
+- Identify agents that have not reported status in 10+ minutes (stale)
+- Report anomalies to the user or trigger alerts
+- Validate that agent lifecycles follow the expected pattern (working → completed/error)
+- Coordinate with all agents to ensure consistent status reporting
+
+**Status Reporting Example:**
+```bash
+curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/working?task=Monitoring%20dashboard%20for%20stale%20agents" > /dev/null
+curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/completed" > /dev/null
+```
+
+### Orchestration Rules
+
+1. **Research First:** Review this copilot-instructions.md Codebase Snapshot for full context before making changes. Do NOT re-read the entire codebase.
+
+2. **Human Approval Required:** All PRs to main must be reviewed and approved by a human. No automated merges to main.
+
+3. **Gitflow:** Follow gitflow branching strategy. Create feature branches for all new work. Merge to main only after human review.
+
+4. **Agent Blocking:** When an agent is blocked waiting for another agent to complete work, report `waiting` status with details.
+
+5. **Parallel Work:** When possible, parallelize work across agents. For example, the Documentation Agent can update docs while the Testing Agent validates infrastructure.
+
+6. **Status Reporting:** All agents must report status at the start of work (`working`), at completion (`completed`/`error`), and when blocked (`waiting`). Agents should update status periodically for long-running tasks.
+
+7. **Dependency Order:** Typical workflow follows this pattern:
+   - Terraform Agent + AWS Agent → Vault Agent + Kubernetes Agent → Python App Agent → Testing Agent → Documentation Agent → GitOps Agent
+   - Windows Agent supports AD-related work independently
+   - Time Tracking Agent monitors continuously
+
 ## Workflow
 
 - **Do NOT start with a thorough code review** — this file contains a complete snapshot of the codebase architecture, modules, dependencies, and key implementation details. Use it as your starting context.
