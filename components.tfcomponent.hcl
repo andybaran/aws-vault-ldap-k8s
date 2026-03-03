@@ -61,6 +61,7 @@ component "ldap" {
     domain_controller_instance_type = var.instance_type
     shared_internal_sg_id           = component.kube0.shared_internal_sg_id
     prefix                = component.kube0.resources_prefix
+    full_ui               = var.full_ui
   }
   providers = {
     aws    = provider.aws.this

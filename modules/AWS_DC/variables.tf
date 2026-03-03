@@ -71,3 +71,9 @@ variable "shared_internal_sg_id" {
   description = "Security group ID for shared internal communication"
   type        = string
 }
+
+variable "full_ui" {
+  type        = bool
+  description = "When true, use the AWS Windows Server 2025 Desktop Experience AMI instead of the hc-base Server Core AMI. Enables full Windows GUI accessible via RDP for administration tasks. Provisioning time is not significantly affected since the GUI is pre-installed in the AMI."
+  default     = false
+}

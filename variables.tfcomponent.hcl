@@ -98,6 +98,12 @@ variable "grace_period" {
   default     = 20
 }
 
+variable "full_ui" {
+  description = "When true, the domain controller is provisioned with the AWS Windows Server 2025 Desktop Experience AMI (full Windows GUI) instead of the hc-base Server Core AMI. Useful for remote administration via RDP. Defaults to false to minimize cost and preserve hc-base CISO hardening."
+  type        = bool
+  default     = false
+}
+
 variable "vault_address" {
   description = "Vault server address (http://host:port). Set after initial vault_cluster deployment to decouple the vault provider from vault_cluster component outputs, working around a Terraform Stacks limitation where component changes make outputs unknown."
   type        = string
