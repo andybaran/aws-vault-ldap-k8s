@@ -104,6 +104,18 @@ variable "full_ui" {
   default     = false
 }
 
+variable "install_adds" {
+  description = "When true (default), the domain controller installs AD Domain Services and promotes to a domain controller. Set to false to provision a plain Windows Server without any AD role."
+  type        = bool
+  default     = true
+}
+
+variable "install_adcs" {
+  description = "When true (default), installs AD Certificate Services on the domain controller to enable LDAPS on port 636. Requires install_adds=true. Set to false to skip ADCS — Vault must then use ldap:// instead of ldaps://."
+  type        = bool
+  default     = true
+}
+
 variable "vault_address" {
   description = "Vault server address (http://host:port). Set after initial vault_cluster deployment to decouple the vault provider from vault_cluster component outputs, working around a Terraform Stacks limitation where component changes make outputs unknown."
   type        = string

@@ -77,3 +77,15 @@ variable "full_ui" {
   description = "When true, use the AWS Windows Server 2025 Desktop Experience AMI instead of the hc-base Server Core AMI. Enables full Windows GUI accessible via RDP for administration tasks. Provisioning time is not significantly affected since the GUI is pre-installed in the AMI."
   default     = false
 }
+
+variable "install_adds" {
+  type        = bool
+  description = "When true (default), installs the AD Domain Services role and promotes the instance to a domain controller for mydomain.local. Set to false to provision a plain Windows Server without any AD role."
+  default     = true
+}
+
+variable "install_adcs" {
+  type        = bool
+  description = "When true (default), installs Active Directory Certificate Services as an Enterprise Root CA, enabling LDAPS on port 636. Requires install_adds=true. Set to false to skip ADCS — Vault must then use ldap:// instead of ldaps://."
+  default     = true
+}

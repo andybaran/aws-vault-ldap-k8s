@@ -178,6 +178,7 @@ resource "aws_instance" "domain_controller" {
                     if ($ADDSRunning -and $ADDSRunning.Status -eq 'Running') {
                       Write-Output "=== Post-promotion boot detected ==="
 
+%{if var.install_adcs}
                       # Install AD CS to enable LDAPS on port 636
                       $AdcsFeature = Get-WindowsFeature -Name ADCS-Cert-Authority
                       Write-Output "ADCS feature state: Installed=$($AdcsFeature.Installed)"
@@ -204,6 +205,9 @@ resource "aws_instance" "domain_controller" {
                           Start-Sleep 10
                         }
                       }
+%{else}
+                      Write-Output "AD CS installation skipped (install_adcs = false) — LDAPS on port 636 will not be available"
+%{endif}
 
                       # Create test service accounts for integration testing
                       Write-Output "Importing ActiveDirectory module..."
@@ -244,7 +248,7 @@ resource "aws_instance" "domain_controller" {
 
                     } else {
                       Write-Output "=== First boot: promoting to domain controller ==="
-
+%{if var.install_adds}
                       # Check available features
                       Write-Output "Checking AD DS feature availability..."
                       $addsFeature = Get-WindowsFeature -Name AD-Domain-Services
@@ -275,6 +279,9 @@ resource "aws_instance" "domain_controller" {
                       $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
                       Install-ADDSForest -CreateDnsDelegation:$false -DomainMode WinThreshold -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode WinThreshold -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true 2>&1
                       Write-Output "Install-ADDSForest completed (system will reboot automatically)"
+%{else}
+                      Write-Output "AD DS installation skipped (install_adds = false) — running as plain Windows Server"
+%{endif}
                     }
                   } catch {
                     Write-Output "FATAL ERROR: $_"
@@ -307,14 +314,19 @@ resource "aws_eip" "domain_controller_eip" {
 
 # Wait for DC reboot after promotion
 # The DC reboots after Install-ADDSForest, then installs AD CS and creates
-# test users on the second boot. This takes approximately 10 minutes.
+# test users on the second boot. Duration is adjusted based on enabled features:
+#   install_adds=false → 3m  (plain Windows boot only)
+#   install_adds=true, install_adcs=false → 7m  (AD DS promote + reboot, no ADCS restart)
+#   install_adds=true, install_adcs=true  → 10m (full setup with ADCS + NTDS restart)
 resource "time_sleep" "wait_for_dc_reboot" {
   depends_on = [aws_eip.domain_controller_eip]
 
-  create_duration = "10m"
+  create_duration = local.dc_wait_duration
 }
 
 locals {
   password = rsadecrypt(aws_instance.domain_controller.password_data, tls_private_key.rsa-4096-key.private_key_pem)
+
+  dc_wait_duration = !var.install_adds ? "3m" : (!var.install_adcs ? "7m" : "10m")
 }
 
