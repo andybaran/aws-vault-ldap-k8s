@@ -117,9 +117,27 @@ data "aws_ami" "hc_base_windows_server_2025" {
   }
 }
 
+// Standard AWS Windows Server 2025 Desktop Experience AMI — used when full_ui = true
+// Provides full Windows GUI (Explorer, taskbar, Server Manager) for administration via RDP
+data "aws_ami" "windows_2025_full" {
+  count       = var.full_ui ? 1 : 0
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["Windows_Server-2025-English-Full-Base-*"]
+  }
+
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+}
+
 
 resource "aws_instance" "domain_controller" {
-  ami                    = data.aws_ami.hc_base_windows_server_2025.id
+  ami                    = var.full_ui ? data.aws_ami.windows_2025_full[0].id : data.aws_ami.hc_base_windows_server_2025.id
   instance_type          = var.domain_controller_instance_type
   vpc_security_group_ids = [aws_security_group.rdp_ingress.id, var.shared_internal_sg_id]
   subnet_id              = var.subnet_id
