@@ -198,7 +198,7 @@ resource "aws_instance" "domain_controller" {
                         do {
                           Start-Sleep 5; $elapsed += 5
                           $adws = Get-Service ADWS -ErrorAction SilentlyContinue
-                          Write-Output "ADWS status: $($adws.Status) (${elapsed}s elapsed)"
+                          Write-Output "ADWS status: $($adws.Status) ($${elapsed}s elapsed)"
                         } while (($adws.Status -ne 'Running') -and ($elapsed -lt $timeout))
                         if ($adws.Status -ne 'Running') {
                           Start-Service ADWS -ErrorAction SilentlyContinue
