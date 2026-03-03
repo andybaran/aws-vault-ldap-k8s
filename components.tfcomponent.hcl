@@ -62,6 +62,8 @@ component "ldap" {
     shared_internal_sg_id           = component.kube0.shared_internal_sg_id
     prefix                = component.kube0.resources_prefix
     full_ui               = var.full_ui
+    install_adds          = var.install_adds
+    install_adcs          = var.install_adcs
   }
   providers = {
     aws    = provider.aws.this
