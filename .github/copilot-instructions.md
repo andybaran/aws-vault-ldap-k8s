@@ -68,17 +68,24 @@ Not every task requires a premium model. Match model capability to task complexi
 
 The agent status dashboard provides real-time visibility into agent activities and coordinates work across the team. The dashboard runs at a configurable URL (default: `http://localhost:5050`, but may vary per session/environment).
 
-**API Reference:**
+**API Reference (v1.1.0):**
 - **Endpoint:** `POST /api/update/<agent_name>/<status>`
 - **Valid Statuses:** `working`, `waiting`, `completed`, `idle`, `blocked`, `error`
 - **Optional Query Parameters:**
   - `task` — Task name or description (URL-encoded)
   - `task_url` — Link to GitHub issue or PR (URL-encoded)
+  - `model` — AI model being used (e.g. `Claude+Sonnet+4.6`)
+  - `role` — Set to `orchestrator` to display in the dedicated Orchestrator Panel
+  - `goal` — Overall workflow objective (orchestrator only, URL-encoded)
+  - `progress` — Brief progress summary updated as the workflow advances (orchestrator only, URL-encoded)
 
 **Example Status Updates:**
 ```bash
-# Report starting work on a task
-curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/working?task=Update%20vault%20module" > /dev/null
+# Orchestrator reporting with dedicated panel (role=orchestrator)
+curl -s -X POST "http://localhost:5050/api/update/Orchestrator/working?role=orchestrator&goal=Deploy+EKS+cluster+with+Vault&progress=VPC+created%2C+deploying+EKS&task=Deploying+EKS&model=Claude+Sonnet+4.6" > /dev/null
+
+# Regular agent reporting with model
+curl -s -X POST "http://localhost:5050/api/update/Terraform%20Agent/working?task=Update%20vault%20module&model=Claude+Sonnet+4.6" > /dev/null
 
 # Report waiting for another agent
 curl -s -X POST "http://localhost:5050/api/update/Python%20Agent/waiting?task=Waiting%20for%20Research%20Agent" > /dev/null
@@ -108,6 +115,7 @@ curl -s -X POST "http://localhost:5050/api/update/Terraform%20Deploy%20Agent/err
 
 | Agent Name | Responsibility |
 |---|---|
+| Orchestrator | Coordinate all agents, auto-approve TFC deployment runs, update dashboard with `role=orchestrator`, report goal and progress |
 | Python Agent | Refactor python-app/ Flask application, write pytest tests, use hvac library |
 | Kubernetes Agent | Create/modify K8s resources (deployments, services, ConfigMaps), manage Vault Agent sidecar/CSI/VSO manifests |
 | UI Agent | Update Python app UI (HDS-styled templates), timeline visualization, delivery method badges |
