@@ -323,6 +323,10 @@ resource "aws_eip" "domain_controller_eip" {
 resource "time_sleep" "wait_for_dc_reboot" {
   depends_on = [aws_eip.domain_controller_eip]
 
+  triggers = {
+    instance_id = aws_instance.domain_controller.id
+  }
+
   create_duration = local.dc_wait_duration
 }
 
