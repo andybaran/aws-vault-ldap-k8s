@@ -80,8 +80,8 @@ resource "kubernetes_secret_v1" "openldap_admin" {
   }
 
   data = {
-    LDAP_ADMIN_PASSWORD    = var.openldap_admin_password
-    LDAP_CONFIG_PASSWORD   = var.openldap_admin_password
+    LDAP_ADMIN_PASSWORD  = var.openldap_admin_password
+    LDAP_CONFIG_PASSWORD = var.openldap_admin_password
   }
 }
 
