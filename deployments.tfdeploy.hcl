@@ -8,25 +8,25 @@ store varset "vault_license" {
   category = "terraform"
 }
 
-# deployment_auto_approve "successful_plans" {
-#   check {
-#     condition = context.success == true
-#     reason    = "Operation failed and requires manual intervention."
-#   }
-# }
+deployment_auto_approve "successful_plans" {
+  check {
+    condition = context.success == true
+    reason    = "Operation failed and requires manual intervention."
+  }
+}
 
-# deployment_group "auto_approve" {
-#   auto_approve_checks = [
-#     deployment_auto_approve.successful_plans,
-#   ]
-# }
+deployment_group "auto_approve" {
+  auto_approve_checks = [
+    deployment_auto_approve.successful_plans,
+  ]
+}
 
 deployment "development" {
   inputs = {
     region                = "us-east-2"
     customer_name         = "fidelity"
     user_email            = "andy.baran@hashicorp.com"
-    instance_type         = "c5.xlarge"  # AMD64 instance type - container rebuilt for AMD64
+    instance_type         = "c5.xlarge"  
     vault_license_key     = store.varset.vault_license.stable.vault_license_key
     eks_node_ami_release_version = "1.34.2-20260128"
     allowlist_ip                 = "66.190.197.168/32"
@@ -43,24 +43,6 @@ deployment "development" {
     AWS_SECRET_ACCESS_KEY = store.varset.aws_creds.AWS_SECRET_ACCESS_KEY
     AWS_SESSION_TOKEN     = store.varset.aws_creds.AWS_SESSION_TOKEN
   }
-  destroy = true
-  # deployment_group = deployment_group.auto_approve
+  #destroy = true
+  deployment_group = deployment_group.auto_approve
 }
-
-
-
-# Re-trigger: previous apply had transient EKS token expiry + identity change
-# Retry: deleted orphaned K8s deployments not tracked in TF state
-# Retry: ConfigMap identity change resolved on next apply
-# Fix: Vault Agent uses projected SA token with audience=vault
-
-# Trigger: dual-account Vault Agent + CSI deployment
-
-# Retry: dual-account roles after DC rebuild
-
-# Retry 2: DC confirmed online, LDAPS working
-
-# Trigger: fix DomainMode Win2012R2 → WinThreshold for Windows Server 2025 compatibility
-# Trigger: fix JET_errFileNotFound -1032 — add Defender exclusions before Install-ADDSForest
-
-# Trigger: add ADWS wait loop after NTDS restart to fix service account creation timing
