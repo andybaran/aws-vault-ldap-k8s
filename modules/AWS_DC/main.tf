@@ -1,23 +1,27 @@
 data "aws_vpc" "default" {
+  count = var.enabled ? 1 : 0
   #default = true 
   id = var.vpc_id
 }
 
 // We need a keypair to obtain the local administrator credentials to an AWS Windows based EC2 instance. So we generate it locally here
 resource "tls_private_key" "rsa-4096-key" {
+  count     = var.enabled ? 1 : 0
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
 // Create an AWS keypair using the keypair we just generated
 resource "aws_key_pair" "rdp-key" {
+  count      = var.enabled ? 1 : 0
   key_name   = "${var.prefix}-${var.aws_key_pair_name}"
-  public_key = tls_private_key.rsa-4096-key.public_key_openssh
+  public_key = tls_private_key.rsa-4096-key[0].public_key_openssh
 }
 
 // Create an AWS security group to allow RDP traffic in and out to from IP's on the allowlist.
 // We also allow ingress to port 88, where the Kerberos KDC is running.
 resource "aws_security_group" "rdp_ingress" {
+  count  = var.enabled ? 1 : 0
   name   = "${var.prefix}-rdp-ingress"
   vpc_id = var.vpc_id
 
@@ -53,6 +57,7 @@ resource "aws_security_group" "rdp_ingress" {
 
 // Create a random string to be used in the user_data script
 resource "random_string" "DSRMPassword" {
+  count            = var.enabled ? 1 : 0
   length           = 8
   override_special = "." # I've set this explicitly so as to avoid characters such as "$" and "'" being used and requiring unneccesary complexity to our user_data scripts
   min_lower        = 1
@@ -66,7 +71,7 @@ resource "random_string" "DSRMPassword" {
 
 // Generate random passwords for test service accounts created during post-promotion boot
 resource "random_password" "test_user_password" {
-  for_each = toset(["svc-rotate-a", "svc-rotate-b", "svc-rotate-c", "svc-rotate-d", "svc-rotate-e", "svc-rotate-f", "svc-single", "svc-lib"])
+  for_each = var.enabled ? toset(["svc-rotate-a", "svc-rotate-b", "svc-rotate-c", "svc-rotate-d", "svc-rotate-e", "svc-rotate-f", "svc-single", "svc-lib"]) : toset([])
 
   length           = 16
   override_special = "!@#"
@@ -78,7 +83,8 @@ resource "random_password" "test_user_password" {
 
 // IAM role granting the DC instance SSM access for remote diagnostic sessions
 resource "aws_iam_role" "dc_ssm_role" {
-  name = "${var.prefix}-dc-ssm-role"
+  count = var.enabled ? 1 : 0
+  name  = "${var.prefix}-dc-ssm-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -91,18 +97,21 @@ resource "aws_iam_role" "dc_ssm_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "dc_ssm_policy" {
-  role       = aws_iam_role.dc_ssm_role.name
+  count      = var.enabled ? 1 : 0
+  role       = aws_iam_role.dc_ssm_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "dc_ssm_profile" {
-  name = "${var.prefix}-dc-ssm-profile"
-  role = aws_iam_role.dc_ssm_role.name
+  count = var.enabled ? 1 : 0
+  name  = "${var.prefix}-dc-ssm-profile"
+  role  = aws_iam_role.dc_ssm_role[0].name
 }
 
 // Security-approved Windows Server 2025 AMI from internal AMI pipeline
 // Updated weekly by the security team — always uses most_recent
 data "aws_ami" "hc_base_windows_server_2025" {
+  count       = var.enabled ? 1 : 0
   most_recent = true
   owners      = ["888995627335"] # hc-ami_prod
 
@@ -120,7 +129,7 @@ data "aws_ami" "hc_base_windows_server_2025" {
 // Standard AWS Windows Server 2025 Desktop Experience AMI — used when full_ui = true
 // Provides full Windows GUI (Explorer, taskbar, Server Manager) for administration via RDP
 data "aws_ami" "windows_2025_full" {
-  count       = var.full_ui ? 1 : 0
+  count       = var.enabled && var.full_ui ? 1 : 0
   most_recent = true
   owners      = ["amazon"]
 
@@ -137,12 +146,13 @@ data "aws_ami" "windows_2025_full" {
 
 
 resource "aws_instance" "domain_controller" {
-  ami                    = var.full_ui ? data.aws_ami.windows_2025_full[0].id : data.aws_ami.hc_base_windows_server_2025.id
+  count                  = var.enabled ? 1 : 0
+  ami                    = var.full_ui ? data.aws_ami.windows_2025_full[0].id : data.aws_ami.hc_base_windows_server_2025[0].id
   instance_type          = var.domain_controller_instance_type
-  vpc_security_group_ids = [aws_security_group.rdp_ingress.id, var.shared_internal_sg_id]
+  vpc_security_group_ids = [aws_security_group.rdp_ingress[0].id, var.shared_internal_sg_id]
   subnet_id              = var.subnet_id
-  key_name               = aws_key_pair.rdp-key.key_name
-  iam_instance_profile   = aws_iam_instance_profile.dc_ssm_profile.name
+  key_name               = aws_key_pair.rdp-key[0].key_name
+  iam_instance_profile   = aws_iam_instance_profile.dc_ssm_profile[0].name
 
   root_block_device {
     volume_type           = "gp2"
@@ -278,7 +288,7 @@ resource "aws_instance" "domain_controller" {
                       Start-Sleep -Seconds 5
 
                       Write-Output "Promoting to domain controller (domain: ${var.active_directory_domain})..."
-                      $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
+                      $password = ConvertTo-SecureString ${random_string.DSRMPassword[0].result} -AsPlainText -Force
                       Install-ADDSForest -CreateDnsDelegation:$false -DomainMode WinThreshold -DomainName ${var.active_directory_domain} -DomainNetbiosName ${var.active_directory_netbios_name} -ForestMode WinThreshold -InstallDns:$true -SafeModeAdministratorPassword $password -Force:$true 2>&1
                       Write-Output "Install-ADDSForest completed (system will reboot automatically)"
 %{else}
@@ -304,8 +314,9 @@ resource "aws_instance" "domain_controller" {
 
 # Elastic IP for domain controller
 resource "aws_eip" "domain_controller_eip" {
+  count    = var.enabled ? 1 : 0
   domain   = "vpc"
-  instance = aws_instance.domain_controller.id
+  instance = aws_instance.domain_controller[0].id
 
   tags = {
     Name = "${var.prefix}-dc-eip"
@@ -321,17 +332,18 @@ resource "aws_eip" "domain_controller_eip" {
 #   install_adds=true, install_adcs=false → 7m  (AD DS promote + reboot, no ADCS restart)
 #   install_adds=true, install_adcs=true  → 10m (full setup with ADCS + NTDS restart)
 resource "time_sleep" "wait_for_dc_reboot" {
+  count      = var.enabled ? 1 : 0
   depends_on = [aws_eip.domain_controller_eip]
 
   triggers = {
-    instance_id = aws_instance.domain_controller.id
+    instance_id = aws_instance.domain_controller[0].id
   }
 
   create_duration = local.dc_wait_duration
 }
 
 locals {
-  password = rsadecrypt(aws_instance.domain_controller.password_data, tls_private_key.rsa-4096-key.private_key_pem)
+  password = var.enabled ? rsadecrypt(aws_instance.domain_controller[0].password_data, tls_private_key.rsa-4096-key[0].private_key_pem) : ""
 
   dc_wait_duration = !var.install_adds ? "3m" : (!var.install_adcs ? "7m" : "10m")
 }

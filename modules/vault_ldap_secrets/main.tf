@@ -4,7 +4,7 @@ resource "vault_ldap_secret_backend" "ad" {
   count = var.ldap_dual_account ? 0 : 1
 
   path        = var.secrets_mount_path
-  description = "LDAP secrets engine for Active Directory"
+  description = "LDAP secrets engine for ${var.ldap_schema == "ad" ? "Active Directory" : "OpenLDAP"}"
 
   # LDAP connection settings — use LDAPS (port 636) for encrypted connection.
   # AD requires TLS for password modifications; the DC has AD CS installed
@@ -13,11 +13,11 @@ resource "vault_ldap_secret_backend" "ad" {
   bindpass = var.ldap_bindpass
   url      = var.ldap_url
 
-  # Accept the AD CS self-signed certificate (demo only)
-  insecure_tls = true
+  # Accept self-signed certificates (for AD CS or test environments)
+  insecure_tls = var.ldap_insecure_tls
 
-  # Active Directory schema
-  schema = "ad"
+  # LDAP schema — 'ad' for Active Directory, 'openldap' for OpenLDAP
+  schema = var.ldap_schema
 
   # Use CN to search for users — the default for AD schema is userPrincipalName,
   # but Vault searches with the bare username (e.g., "vault-demo") which doesn't

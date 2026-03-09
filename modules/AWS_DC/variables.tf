@@ -89,3 +89,9 @@ variable "install_adcs" {
   description = "When true (default), installs Active Directory Certificate Services as an Enterprise Root CA, enabling LDAPS on port 636. Requires install_adds=true. Set to false to skip ADCS — Vault must then use ldap:// instead of ldaps://."
   default     = true
 }
+
+variable "enabled" {
+  type        = bool
+  description = "When true (default), creates all AWS DC resources. Set to false to skip the entire module (e.g., when using OpenLDAP instead)."
+  default     = true
+}

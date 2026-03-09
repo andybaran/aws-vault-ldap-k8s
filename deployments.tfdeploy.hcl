@@ -32,6 +32,11 @@ deployment "development" {
     allowlist_ip                 = "66.190.197.168/32"
     ldap_dual_account            = true
 
+    # LDAP provider: "openldap" (EKS-based) or "ad" (Windows DC)
+    ldap_provider                = "openldap"
+    openldap_domain              = "demo.hashicorp"
+    openldap_admin_password      = "VaultDemo2026!"
+
     #### Auth credentials for AWS
     AWS_ACCESS_KEY_ID     = store.varset.aws_creds.AWS_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY = store.varset.aws_creds.AWS_SECRET_ACCESS_KEY

@@ -25,7 +25,7 @@ resource "vault_mount" "ldap_dual_account" {
 
   path        = var.secrets_mount_path
   type        = "ldap_dual_account"
-  description = "Dual-account LDAP secrets engine for Active Directory"
+  description = "Dual-account LDAP secrets engine for ${var.ldap_schema == "ad" ? "Active Directory" : "OpenLDAP"}"
 
   depends_on = [vault_generic_endpoint.register_plugin]
 }
@@ -43,8 +43,8 @@ resource "vault_generic_endpoint" "ldap_config" {
     binddn       = var.ldap_binddn
     bindpass     = var.ldap_bindpass
     url          = var.ldap_url
-    schema       = "ad"
-    insecure_tls = true
+    schema       = var.ldap_schema
+    insecure_tls = var.ldap_insecure_tls
     userattr     = "cn"
     userdn       = var.ldap_userdn
   })
@@ -63,9 +63,9 @@ resource "vault_generic_endpoint" "ldap_dual_static_role" {
 
   data_json = jsonencode({
     username          = "svc-rotate-a"
-    dn                = "CN=svc-rotate-a,CN=Users,DC=mydomain,DC=local"
+    dn                = var.static_roles["svc-rotate-a"].dn
     username_b        = "svc-rotate-b"
-    dn_b              = "CN=svc-rotate-b,CN=Users,DC=mydomain,DC=local"
+    dn_b              = var.static_roles["svc-rotate-b"].dn
     rotation_period   = "${var.static_role_rotation_period}s"
     dual_account_mode = true
     grace_period      = "${var.grace_period}s"
@@ -80,11 +80,11 @@ resource "vault_generic_endpoint" "ldap_single_static_role" {
   for_each = var.ldap_dual_account ? {
     "svc-single" = {
       username = "svc-single"
-      dn       = "CN=svc-single,CN=Users,DC=mydomain,DC=local"
+      dn       = var.static_roles["svc-single"].dn
     }
     "svc-lib" = {
       username = "svc-lib"
-      dn       = "CN=svc-lib,CN=Users,DC=mydomain,DC=local"
+      dn       = var.static_roles["svc-lib"].dn
     }
   } : {}
 
@@ -112,9 +112,9 @@ resource "vault_generic_endpoint" "ldap_vault_agent_dual_role" {
 
   data_json = jsonencode({
     username          = "svc-rotate-c"
-    dn                = "CN=svc-rotate-c,CN=Users,DC=mydomain,DC=local"
+    dn                = var.static_roles["svc-rotate-c"].dn
     username_b        = "svc-rotate-d"
-    dn_b              = "CN=svc-rotate-d,CN=Users,DC=mydomain,DC=local"
+    dn_b              = var.static_roles["svc-rotate-d"].dn
     rotation_period   = "${var.static_role_rotation_period}s"
     dual_account_mode = true
     grace_period      = "${var.grace_period}s"
@@ -134,9 +134,9 @@ resource "vault_generic_endpoint" "ldap_csi_dual_role" {
 
   data_json = jsonencode({
     username          = "svc-rotate-e"
-    dn                = "CN=svc-rotate-e,CN=Users,DC=mydomain,DC=local"
+    dn                = var.static_roles["svc-rotate-e"].dn
     username_b        = "svc-rotate-f"
-    dn_b              = "CN=svc-rotate-f,CN=Users,DC=mydomain,DC=local"
+    dn_b              = var.static_roles["svc-rotate-f"].dn
     rotation_period   = "${var.static_role_rotation_period}s"
     dual_account_mode = true
     grace_period      = "${var.grace_period}s"

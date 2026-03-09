@@ -116,3 +116,22 @@ variable "install_adcs" {
   default     = true
 }
 
+variable "ldap_provider" {
+  description = "Which LDAP backend to deploy: 'ad' for the Windows Active Directory domain controller (AWS_DC module) or 'openldap' for an OpenLDAP server running on EKS. The custom dual-account Vault plugin works with both."
+  type        = string
+  default     = "openldap"
+}
+
+variable "openldap_domain" {
+  description = "LDAP domain for OpenLDAP (e.g., 'demo.hashicorp'). Converted to base DN dc=demo,dc=hashicorp."
+  type        = string
+  default     = "demo.hashicorp"
+}
+
+variable "openldap_admin_password" {
+  description = "Admin password for the OpenLDAP server. Used as the bind password for Vault."
+  type        = string
+  sensitive   = true
+  default     = "VaultDemo2026!"
+}
+

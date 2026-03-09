@@ -51,10 +51,10 @@ component "vault_cluster" {
 
 }
 
+# Active Directory domain controller — only created when ldap_provider = "ad"
 component "ldap" {
   source = "./modules/AWS_DC"
   inputs = {
-    region                          = var.region
     allowlist_ip                    = var.allowlist_ip
     vpc_id                          = component.kube0.vpc_id
     subnet_id                       = component.kube0.first_public_subnet_id
@@ -64,6 +64,7 @@ component "ldap" {
     full_ui               = var.full_ui
     install_adds          = var.install_adds
     install_adcs          = var.install_adcs
+    enabled               = var.ldap_provider == "ad"
   }
   providers = {
     aws    = provider.aws.this
@@ -74,19 +75,40 @@ component "ldap" {
 
 }
 
+# OpenLDAP on EKS — only created when ldap_provider = "openldap"
+component "openldap" {
+  source = "./modules/openldap"
+  inputs = {
+    kube_namespace          = component.kube1.kube_namespace
+    openldap_domain         = var.openldap_domain
+    openldap_admin_password = var.openldap_admin_password
+    prefix                  = component.kube0.resources_prefix
+    enabled                 = var.ldap_provider == "openldap"
+  }
+  providers = {
+    kubernetes = provider.kubernetes.this
+    random     = provider.random.this
+    time       = provider.time.this
+  }
+}
+
 component "vault_ldap_secrets" {
   source = "./modules/vault_ldap_secrets"
   inputs = {
-    ldap_url                    = "ldaps://${component.ldap.dc-priv-ip}"
-    ldap_binddn                 = "CN=Administrator,CN=Users,DC=mydomain,DC=local"
-    ldap_bindpass               = component.ldap.password
-    ldap_userdn                 = "CN=Users,DC=mydomain,DC=local"
+    # LDAP connection — switches between AD and OpenLDAP based on ldap_provider
+    ldap_url      = var.ldap_provider == "ad" ? "ldaps://${component.ldap.dc-priv-ip}" : component.openldap.ldap_url
+    ldap_binddn   = var.ldap_provider == "ad" ? "CN=Administrator,CN=Users,DC=mydomain,DC=local" : component.openldap.ldap_binddn
+    ldap_bindpass = var.ldap_provider == "ad" ? component.ldap.password : component.openldap.ldap_bindpass
+    ldap_userdn   = var.ldap_provider == "ad" ? "CN=Users,DC=mydomain,DC=local" : component.openldap.ldap_userdn
+    ldap_schema   = var.ldap_provider == "ad" ? "ad" : "openldap"
+    ldap_insecure_tls = var.ldap_provider == "ad" ? true : false
+
     secrets_mount_path          = "ldap"
-    active_directory_domain     = "mydomain.local"
+    active_directory_domain     = var.ldap_provider == "ad" ? "mydomain.local" : var.openldap_domain
     kubernetes_host             = component.kube0.cluster_endpoint
     kubernetes_ca_cert          = component.kube0.kube_cluster_certificate_authority_data
     kube_namespace              = component.kube1.kube_namespace
-    static_roles                = component.ldap.static_roles
+    static_roles                = var.ldap_provider == "ad" ? component.ldap.static_roles : component.openldap.static_roles
     static_role_rotation_period = 100
     ldap_dual_account           = var.ldap_dual_account
     grace_period                = var.grace_period
@@ -115,27 +137,35 @@ component "ldap_app" {
   }
 }
 
+# --- Stack Outputs ---
+
+output "ldap_provider" {
+  description = "Which LDAP backend is active: 'ad' or 'openldap'"
+  value       = var.ldap_provider
+  type        = string
+}
+
 output "public-dns-address" {
-  description = "Public DNS address of the LDAP/DC instance (via Elastic IP)"
+  description = "Public DNS address of the LDAP/DC instance (AD only)"
   value       = component.ldap.public-dns-address
   type        = string
 }
 
 output "ldap-eip-public-ip" {
-  description = "Elastic IP public address for the LDAP/DC instance"
+  description = "Elastic IP public address for the LDAP/DC instance (AD only)"
   value       = component.ldap.eip-public-ip
   type        = string
 }
 
 output "ldap-private-ip" {
-  description = "Private IP address of the LDAP/DC instance"
+  description = "Private IP address of the LDAP/DC instance (AD only)"
   value       = component.ldap.dc-priv-ip
   type        = string
 }
 
 output "password" {
-  description = "This is the decrypted administrator password for the EC2 instance"
-  value       = component.ldap.password
+  description = "Admin password for the LDAP server"
+  value       = var.ldap_provider == "ad" ? component.ldap.password : component.openldap.password
   type        = string
 }
 
@@ -198,11 +228,3 @@ output "ldap_app_csi_url" {
   value       = component.ldap_app.ldap_app_csi_url
   type        = string
 }
-
-# output "vault_root_token" {
-#     description = "The Vault root token."
-#     value = component.vault_cluster.vault_root_token
-#     ephemeral = false
-#     sensitive = false
-#     type = string
-#     }

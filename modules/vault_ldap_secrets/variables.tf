@@ -69,6 +69,18 @@ variable "ldap_dual_account" {
   default     = false
 }
 
+variable "ldap_schema" {
+  description = "LDAP schema for Vault secrets engine: 'ad' for Active Directory, 'openldap' for OpenLDAP"
+  type        = string
+  default     = "openldap"
+}
+
+variable "ldap_insecure_tls" {
+  description = "Whether to skip TLS verification for the LDAP connection"
+  type        = bool
+  default     = false
+}
+
 variable "grace_period" {
   description = "Grace period in seconds for dual-account rotation"
   type        = number
