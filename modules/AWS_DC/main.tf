@@ -275,7 +275,7 @@ resource "aws_instance" "domain_controller" {
                       # Defender re-enables automatically after the post-promotion reboot.
                       Write-Output "Disabling Defender real-time protection for AD DS promotion..."
                       Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
-                      Start-Sleep -Seconds 5
+                      # Start-Sleep -Seconds 5
 
                       Write-Output "Promoting to domain controller (domain: ${var.active_directory_domain})..."
                       $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
