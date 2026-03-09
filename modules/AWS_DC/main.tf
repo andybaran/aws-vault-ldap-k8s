@@ -270,10 +270,12 @@ resource "aws_instance" "domain_controller" {
 
                       Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0" -Name "AuditReceivingNTLMTraffic" -Value 1
 
-                      # Exclude NTDS/SYSVOL paths from Defender to prevent file-locking during promotion
-                      # (hc-base AMI real-time scanning locks ntds.dit causing JET_errFileNotFound -1032)
-                      Write-Output "Adding Defender exclusions for NTDS paths..."
-                      Add-MpPreference -ExclusionPath "C:\Windows\NTDS","C:\Windows\SYSVOL" -ErrorAction SilentlyContinue
+                      # Disable Defender real-time protection during AD DS promotion to prevent
+                      # JET_errFileNotFound -1032 caused by Defender locking ntds.dit during creation.
+                      # Defender re-enables automatically after the post-promotion reboot.
+                      Write-Output "Disabling Defender real-time protection for AD DS promotion..."
+                      Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+                      Start-Sleep -Seconds 5
 
                       Write-Output "Promoting to domain controller (domain: ${var.active_directory_domain})..."
                       $password = ConvertTo-SecureString ${random_string.DSRMPassword.result} -AsPlainText -Force
