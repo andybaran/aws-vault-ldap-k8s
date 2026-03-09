@@ -62,12 +62,8 @@ provider "aws" "this" {
 
 provider "vault" "this" {
   config {
-    # Use stack variables to avoid Stacks planning limitation where
-    # vault_cluster changes make all outputs unknown, preventing the
-    # vault provider from configuring. These values must be set in
-    # deployments.tfdeploy.hcl after initial vault_cluster deploy.
-    address         = var.vault_address
-    token           = var.vault_token
+    address         = component.vault_cluster.vault_loadbalancer_hostname
+    token           = component.vault_cluster.vault_root_token
     skip_tls_verify = true
   }
 }
