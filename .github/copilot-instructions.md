@@ -632,7 +632,7 @@ curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/workin
 
 ---
 
-## Codebase Snapshot (last updated: 2026-03-02, post Windows cleanup + DC AMI upgrade)
+## Codebase Snapshot (last updated: 2026-03-09, OpenLDAP alternative LDAP backend)
 
 ### Repository
 
@@ -644,10 +644,10 @@ curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/workin
 
 | File | Purpose |
 |------|---------|
-| `components.tfcomponent.hcl` | Defines 6 stack components, their inputs/outputs, provider bindings, and dependency wiring |
-| `deployments.tfdeploy.hcl` | Single `development` deployment targeting `us-east-2`, references HCP Terraform varsets `varset-oUu39eyQUoDbmxE1` (aws_creds) and `varset-fMrcJCnqUd6q4D9C` (vault_license) |
+| `components.tfcomponent.hcl` | Defines 7 stack components (kube0, kube1, ldap, openldap, vault_cluster, vault_ldap_secrets, ldap_app), their inputs/outputs, provider bindings, and dependency wiring. Uses ternary expressions to switch between AD and OpenLDAP inputs for vault_ldap_secrets based on `var.ldap_provider`. |
+| `deployments.tfdeploy.hcl` | Single `development` deployment targeting `us-east-2`, references HCP Terraform varsets `varset-oUu39eyQUoDbmxE1` (aws_creds) and `varset-fMrcJCnqUd6q4D9C` (vault_license). Includes `ldap_provider = "openldap"` to select LDAP backend. |
 | `providers.tfcomponent.hcl` | All provider definitions with pinned versions |
-| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip, vault_image, ldap_app_image, ldap_app_account_name, ldap_dual_account, grace_period) |
+| `variables.tfcomponent.hcl` | Stack-level variable declarations (region, customer_name, AWS creds as ephemeral, vault_license_key, eks_node_ami_release_version, allowlist_ip, vault_image, ldap_app_image, ldap_app_account_name, ldap_dual_account, grace_period, **ldap_provider**, **openldap_domain**, **openldap_admin_password**) |
 
 ### Provider Versions (pinned in `providers.tfcomponent.hcl`)
 
@@ -669,11 +669,15 @@ curl -s -X POST "http://localhost:5050/api/update/Time%20Tracking%20Agent/workin
 ```
 kube0 (VPC, EKS, security groups)
   ├──► kube1 (nginx ingress, vault SA, vault license secret)
+  │      ├──► openldap (Bitnami OpenLDAP on EKS, enabled when ldap_provider="openldap")
   │      └──► vault_cluster (Vault Helm HA Raft, init job, VSO, VaultConnection, VaultAuth, CSI Driver)
-  │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, 3 dual-account static roles: dual-rotation-demo (a/b), vault-agent-dual-role (c/d), csi-dual-role (e/f), K8s auth backend with 4 roles)
+  │             ├──► vault_ldap_secrets (LDAP engine OR custom dual-account plugin, inputs switch via ldap_provider ternary)
   │             │      └──► ldap_app (3 deployments: VSO dual-account, Vault Agent sidecar, CSI Driver)
   │             └──► [vault provider configured from var.vault_address + var.vault_token]
-  └──► ldap (Windows EC2 domain controller, AD forest, AD CS for LDAPS)
+  └──► ldap (Windows EC2 domain controller, enabled when ldap_provider="ad")
+
+Note: vault_ldap_secrets inputs (ldap_url, ldap_binddn, ldap_bindpass, ldap_userdn, ldap_schema,
+      static_roles) are sourced from either component.openldap or component.ldap based on var.ldap_provider.
 ```
 
 ### Module Details
@@ -712,12 +716,28 @@ kube0 (VPC, EKS, security groups)
 
 #### `modules/AWS_DC/` — Active Directory Domain Controller
 **Providers:** aws, tls, random
+**Guard:** All resources gated with `count = var.enabled ? 1 : 0`. When `enabled = false`, module creates no resources and outputs return empty defaults.
 
 **Files:**
-- `main.tf` — Windows Server 2025 EC2 (`data.aws_ami.hc_base_windows_server_2025`, owner `888995627335` security-approved AMI), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 8 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a through svc-rotate-f, svc-single, svc-lib). Elastic IP attached. **`time_sleep.wait_for_dc_reboot` (10m) ensures reboot cycle completes before outputs become available.**
-- `variables.tf` — `allowlist_ip`, `prefix` (default "boundary-rdp"), `aws_key_pair_name`, `ami` (unused default), `domain_controller_instance_type`, `root_block_device_size` (128GB), `active_directory_domain` (mydomain.local), `active_directory_netbios_name` (mydomain), `only_ntlmv2`, `only_kerberos`, `vpc_id`, `subnet_id`, `shared_internal_sg_id`
-- `outputs.tf` — `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password` (decrypted admin pw, nonsensitive), `aws_keypair_name`, `static_roles` (map of test account username/password/dn from `random_password`). **All outputs depend on `time_sleep.wait_for_dc_reboot`.**
+- `main.tf` — Windows Server 2025 EC2 (`data.aws_ami.hc_base_windows_server_2025`, owner `888995627335` security-approved AMI), RSA-4096 keypair for RDP, security group (RDP + Kerberos from allowlist_ip), DSRM password via `random_string`, `random_password.test_user_password` (for_each over 8 test accounts), user_data PowerShell: first boot promotes to DC (`Install-ADDSForest`, domain `mydomain.local`), second boot installs AD CS (`Install-AdcsCertificationAuthority` for LDAPS) and creates test service accounts (svc-rotate-a through svc-rotate-f, svc-single, svc-lib). Elastic IP attached. **`time_sleep.wait_for_dc_reboot` (10m) ensures reboot cycle completes before outputs become available.** All resources use `count = var.enabled ? 1 : 0`.
+- `variables.tf` — `enabled` (bool, default true), `allowlist_ip`, `prefix` (default "boundary-rdp"), `aws_key_pair_name`, `ami` (unused default), `domain_controller_instance_type`, `root_block_device_size` (128GB), `active_directory_domain` (mydomain.local), `active_directory_netbios_name` (mydomain), `only_ntlmv2`, `only_kerberos`, `vpc_id`, `subnet_id`, `shared_internal_sg_id`
+- `outputs.tf` — All outputs conditional: return real values when `var.enabled`, empty strings/maps when disabled. Includes `private-key`, `public-dns-address`, `eip-public-ip`, `dc-priv-ip`, `password`, `aws_keypair_name`, `static_roles`, `ldap_url`, `ldap_binddn`, `ldap_bindpass`, `ldap_userdn`, `ldap_schema` ("ad"), `ldap_insecure_tls` (true).
 - `README.md` — Documents the DC setup and PowerShell user_data
+
+#### `modules/openldap/` — OpenLDAP on EKS (Alternative to AWS_DC)
+**Providers:** kubernetes, random, time
+**Guard:** All resources gated with `count = var.enabled ? 1 : 0`. When `enabled = false`, module creates no resources and outputs return empty defaults.
+
+**Files:**
+- `main.tf` — Bitnami OpenLDAP 2.6 deployment on EKS. Creates: K8s Secret (`openldap-credentials`) with admin/config passwords, ConfigMap (`openldap-ldifs`) with custom LDIF to bootstrap 8 service accounts (svc-rotate-a through f, svc-single, svc-lib) with `inetOrgPerson` objectClass and random passwords, K8s Deployment (`openldap`, 1 replica, non-root UID 1001, ports 1389/1636), ClusterIP Service (`openldap`, maps 389→1389, 636→1636), `random_password` for each service account, `time_sleep` (30s) to wait for pod readiness. Uses `LDAP_SKIP_DEFAULT_TREE=yes` with custom LDIF mounted at `/ldifs`.
+- `variables.tf` — `kube_namespace` (default "default"), `openldap_domain` (default "demo.hashicorp"), `openldap_admin_password` (sensitive, default "admin"), `prefix` (default "openldap"), `enabled` (bool, default true)
+- `outputs.tf` — Common LDAP interface: `ldap_url` ("ldap://openldap.default.svc.cluster.local:389"), `ldap_binddn` ("cn=admin,dc=demo,dc=hashicorp"), `ldap_bindpass` (sensitive), `ldap_userdn` ("ou=users,dc=demo,dc=hashicorp"), `ldap_schema` ("openldap"), `ldap_insecure_tls` (false), `static_roles` (map of username/password/dn). Also provides legacy empty-string outputs for AD-specific fields (dc-priv-ip, password, etc.).
+
+**Key Design Notes:**
+- Uses plain LDAP (port 389) within the EKS cluster—no TLS needed for in-cluster traffic (demo project)
+- Bitnami image runs as non-root (UID 1001) on unprivileged ports (1389/1636); K8s Service maps standard ports
+- Service accounts use `cn=<user>,ou=users,dc=<domain>` DN format (vs AD's `CN=<user>,CN=Users,DC=<domain>`)
+- Custom plugin `ldap_dual_account` works with `openldap` schema (modifies `userPassword` attribute vs AD's `unicodePwd`)
 
 #### `modules/vault_ldap_secrets/` — Vault LDAP Secrets Engine
 **Providers:** vault
@@ -725,10 +745,10 @@ kube0 (VPC, EKS, security groups)
 **Modes:** Single-account (default, `ldap_dual_account=false`) and dual-account (`ldap_dual_account=true`). Resources are gated with `count` guards.
 
 **Files:**
-- `main.tf` — Single-account mode: `vault_ldap_secret_backend.ad` mounted at `var.secrets_mount_path` (default "ldap"), LDAPS URL, `insecure_tls=true`, schema `ad`, `userattr=cn`, `skip_static_role_import_rotation=true`. Static role for configurable user, rotation period configurable (default 300s). Resources gated with `count = var.ldap_dual_account ? 0 : 1`.
-- `dual_account.tf` — Dual-account mode: registers custom plugin (`vault_generic_endpoint` at `sys/plugins/catalog/secret/ldap_dual_account`), mounts via `vault_mount` with `type = "ldap_dual_account"` at path "ldap", configures LDAP backend, creates 3 dual-account static roles: `dual-rotation-demo` (svc-rotate-a/b for VSO), `vault-agent-dual-role` (svc-rotate-c/d for Vault Agent), `csi-dual-role` (svc-rotate-e/f for CSI). All resources gated with `count = var.ldap_dual_account ? 1 : 0`.
+- `main.tf` — Single-account mode: `vault_ldap_secret_backend.ad` mounted at `var.secrets_mount_path` (default "ldap"), LDAP URL from variable, `insecure_tls=var.ldap_insecure_tls`, `schema=var.ldap_schema`, `userattr=cn`, `skip_static_role_import_rotation=true`. Static role for configurable user, rotation period configurable (default 300s). Resources gated with `count = var.ldap_dual_account ? 0 : 1`.
+- `dual_account.tf` — Dual-account mode: registers custom plugin (`vault_generic_endpoint` at `sys/plugins/catalog/secret/ldap_dual_account`), mounts via `vault_mount` with `type = "ldap_dual_account"` at path "ldap", configures LDAP backend with `schema=var.ldap_schema` and `insecure_tls=var.ldap_insecure_tls`, creates 3 dual-account static roles using DNs from `var.static_roles` (no hardcoded AD DNs). All resources gated with `count = var.ldap_dual_account ? 1 : 0`.
 - `kubernetes_auth.tf` — `vault_auth_backend` type kubernetes at path "kubernetes", config with EKS host/CA cert. Four roles: `vso-role` (bound to SA `vso-auth`, for VSO), `ldap-app-role` (bound to SA `ldap-app-vault-auth`, for direct app polling), `vault-agent-app-role` (bound to SA `ldap-app-vault-agent`, for Vault Agent sidecar), `csi-app-role` (bound to SA `ldap-app-csi`, for CSI Driver). All have `ldap-static-read` policy, audience `vault`, token TTL 600s.
-- `variables.tf` — `ldap_url`, `ldap_binddn`, `ldap_bindpass` (sensitive), `ldap_userdn`, `secrets_mount_path`, `active_directory_domain`, `static_role_name`, `static_role_username`, `static_role_rotation_period` (default 300), `kubernetes_host`, `kubernetes_ca_cert`, `kube_namespace`, `ad_user_job_completed`, `ldap_dual_account` (bool), `grace_period` (number), `dual_account_static_role_name`, `plugin_sha256`
+- `variables.tf` — `ldap_url`, `ldap_binddn`, `ldap_bindpass` (sensitive), `ldap_userdn`, `secrets_mount_path`, `active_directory_domain`, `static_role_name`, `static_role_username`, `static_role_rotation_period` (default 300), `kubernetes_host`, `kubernetes_ca_cert`, `kube_namespace`, `ad_user_job_completed`, `ldap_dual_account` (bool), `grace_period` (number), `dual_account_static_role_name`, `plugin_sha256`, **`ldap_schema`** (default "openldap"), **`ldap_insecure_tls`** (default false), **`static_roles`** (map used for DN lookups in dual-account mode)
 - `outputs.tf` — `ldap_secrets_mount_path` (conditional for both modes), `ldap_secrets_mount_accessor`, `static_role_name` (conditional), `static_role_credentials_path`, `static_role_policy_name`, `vault_app_auth_role_name` (returns "ldap-app-role" when dual-account, "" otherwise)
 
 #### `modules/ldap_app/` — Python App Deployments (3 delivery methods) + VSO Integration
@@ -777,10 +797,11 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 
 ### Stack Outputs (from `components.tfcomponent.hcl`)
 
-- `public-dns-address` — DC Elastic IP public DNS
-- `ldap-eip-public-ip` — DC Elastic IP
-- `ldap-private-ip` — DC private IP
-- `password` — Decrypted DC admin password
+- `public-dns-address` — DC Elastic IP public DNS (empty when `ldap_provider="openldap"`)
+- `ldap-eip-public-ip` — DC Elastic IP (empty when `ldap_provider="openldap"`)
+- `ldap-private-ip` — DC private IP (empty when `ldap_provider="openldap"`)
+- `password` — Decrypted DC admin password or OpenLDAP admin password (conditional on `ldap_provider`)
+- `ldap_provider` — Active LDAP provider ("ad" or "openldap")
 - `eks_cluster_name` — EKS cluster name (kubectl command)
 - `vault_service_name` — "vault"
 - `vault_loadbalancer_hostname` — Vault API internal LB
@@ -792,11 +813,28 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 
 ### Key Configuration Values
 
+- **LDAP Provider:** Selectable via `ldap_provider` variable — `"ad"` for Active Directory, `"openldap"` for OpenLDAP on EKS
 - **VPC CIDR:** 10.0.0.0/16
+
+#### Active Directory Configuration (when `ldap_provider = "ad"`)
 - **AD Domain:** mydomain.local (NetBIOS: mydomain)
 - **AD Users managed by Vault:** svc-rotate-a through svc-rotate-f, svc-single, svc-lib (created by DC user_data)
-- **App displays account:** svc-rotate-a by default (configurable via `ldap_app_account_name` stack variable)
 - **LDAP bind DN:** CN=Administrator,CN=Users,DC=mydomain,DC=local
+- **LDAP User DN:** CN=Users,DC=mydomain,DC=local
+- **LDAP URL:** ldaps://<dc-private-ip> (self-signed LDAPS cert, insecure_tls=true)
+- **Schema:** ad (modifies unicodePwd attribute)
+
+#### OpenLDAP Configuration (when `ldap_provider = "openldap"`)
+- **OpenLDAP Domain:** demo.hashicorp → base DN `dc=demo,dc=hashicorp`
+- **Users managed by Vault:** svc-rotate-a through svc-rotate-f, svc-single, svc-lib (created by LDIF ConfigMap)
+- **LDAP bind DN:** cn=admin,dc=demo,dc=hashicorp
+- **LDAP User DN:** ou=users,dc=demo,dc=hashicorp
+- **LDAP URL:** ldap://openldap.default.svc.cluster.local:389 (plain LDAP, in-cluster only)
+- **Schema:** openldap (modifies userPassword attribute)
+- **Image:** bitnami/openldap:2.6
+
+#### Common Configuration
+- **App displays account:** svc-rotate-a by default (configurable via `ldap_app_account_name` stack variable)
 - **Vault dual-account static roles:**
   - `dual-rotation-demo` (svc-rotate-a/svc-rotate-b) → VSO delivery
   - `vault-agent-dual-role` (svc-rotate-c/svc-rotate-d) → Vault Agent sidecar delivery
@@ -828,6 +866,15 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 2. **Terraform Stacks identity tracking** — `kubernetes_deployment_v1` can trigger "Unexpected Identity Change" errors on first apply after spec changes (provider returns real identity where nulls were stored). Transient; retry resolves it.
 3. **Vault provider decoupled from vault_cluster outputs** — Vault provider uses `var.vault_address` and `var.vault_token` stored in varset `varset-fMrcJCnqUd6q4D9C` to avoid Stacks unknown-output dependency problem.
 4. **Vault Agent requires projected SA token** — Vault Agent kubernetes auto_auth does NOT support `token_audiences`. Must project a K8s SA token with `audience: "vault"` as a volume and set `token_path` to the projected token path.
+5. **OpenLDAP plain LDAP in-cluster** — The OpenLDAP deployment uses unencrypted LDAP (port 389) within the EKS cluster. Acceptable for demo since traffic never leaves the cluster network. For production, enable LDAPS with TLS certificates.
+6. **OpenLDAP admin password in deployment config** — The `openldap_admin_password` is set as a default value in `deployments.tfdeploy.hcl`. While marked `sensitive = true` in the variable declaration, the plaintext default is visible in the HCL file. For production use, move to a HCP Terraform variable set.
+7. **AWS_DC disabled components still present** — When `ldap_provider = "openldap"`, the `ldap` (AWS_DC) component still exists in the stack but creates no resources (`enabled = false`). This is by design for Terraform Stacks compatibility.
+
+#### Resolved (OpenLDAP branch)
+- Added OpenLDAP on EKS as alternative to Windows AD domain controller
+- Parameterized vault_ldap_secrets to accept either `ad` or `openldap` schema
+- Removed hardcoded AD DNs from dual_account.tf in favor of `var.static_roles` lookups
+- Added `enabled` guard to AWS_DC module for conditional resource creation
 
 #### Resolved (V2 PRs #184-#189)
 - V2 multi-delivery refactoring complete: VSO, Vault Agent sidecar, CSI Driver all deployed and verified
@@ -854,5 +901,6 @@ Flask app (`app.py`, APP_VERSION 3.0.0) displaying LDAP credentials in three del
 - Vault Secrets Operator: https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso
 - Vault Secrets Operator Protected Secrets: https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso/csi
 - Vault LDAP Secrets Engine: https://developer.hashicorp.com/vault/docs/secrets/ldap
+- Vault OpenLDAP Tutorial: https://developer.hashicorp.com/vault/tutorials/secrets-management/openldap
 - Terraform Stacks: https://developer.hashicorp.com/terraform/language/stacks
 - Terraform Stacks Organization: https://developer.hashicorp.com/validated-designs/terraform-operating-guides-adoption/organizing-resources#terraform-stacks
