@@ -38,5 +38,5 @@ deployment "development" {
     AWS_SESSION_TOKEN     = store.varset.aws_creds.AWS_SESSION_TOKEN
   }
   destroy = true
-  deployment_group = deployment_group.auto_approve
+ //  deployment_group = deployment_group.auto_approve
 }
